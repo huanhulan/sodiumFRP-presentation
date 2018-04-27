@@ -1,0 +1,91 @@
+@import "../template/mixins.scss";
+@import "../template/settings.scss";
+@import "../template/theme.scss";
+
+.reveal .dark-font {
+  color: #333;
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin: 0 0 20px 0;
+    color: #333;
+    font-family: "Quicksand", sans-serif;
+    font-weight: normal;
+    line-height: 1.2;
+    letter-spacing: -0.08em;
+    text-transform: uppercase;
+    text-shadow: none;
+    word-wrap: break-word;
+  }
+}
+
+b {
+  font-size: 1.5em;
+  font-weight: bold;
+  color: #eee666;
+}
+
+.book-introduction {
+  overflow: hidden;
+  &:after {
+    clear: both;
+  }
+  .book-introduction__book {
+    float: left;
+    width: 36%;
+    
+    small{
+      font-size: .4em;
+    }
+  }
+  .book-introduction__info {
+    float: left;
+    width: 60%;
+    text-align: left;
+    font-size: .6em;
+    margin-left: 2%;
+  }
+}
+
+.quote {
+  padding: 10px;
+  &:before {
+    font-size: 2em;
+    display: block;
+    content: "“";
+    font-family: "fontawesome";
+    position: absolute;
+    left: -.6em;
+    color: #777777;
+  }
+  p {
+    font-style: italic;
+    font-size: 1em;
+    padding-left: 1em;
+    position: relative;
+  }
+  footer {
+    text-align: right;
+    display: block;
+    font-size: 80%;
+    line-height: 1.428571429;
+    color: #777777;
+  }
+}
+
+.comparison-two {
+  .comparison-two__content {
+    margin: 0;
+    float: left;
+    width: 45%;
+  }
+  .comparison-two__content + .comparison-two__content {
+    margin-left: 5%;
+  }
+  &:after {
+    clear: both;
+  }
+}

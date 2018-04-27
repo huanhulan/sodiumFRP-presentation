@@ -1,0 +1,2168 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>FRP</title>
+
+    <link rel="stylesheet" href="css/reveal.css">
+    <link rel="stylesheet" href="css/theme/custom.css">
+    <link rel="stylesheet" href="css/theme/league.css">
+
+    <!-- Theme used for syntax highlighting of code -->
+    <link rel="stylesheet" href="lib/css/zenburn.css">
+
+    <!-- Printing and PDF exports -->
+    <script>
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.type = 'text/css';
+        link.href = window.location.search.match(/print-pdf/gi) ? 'css/print/pdf.css' : 'css/print/paper.css';
+        document.getElementsByTagName('head')[0].appendChild(link);
+    </script>
+</head>
+
+<body>
+    <div class="reveal">
+        <div class="slides">
+            <section data-transition="slide-in fade-out">
+                <h1>Functional Reactive Programming</h1>
+                <h4>a new way to deals with complexity</h4>
+                <p>
+                    <small>
+                        <a href="https://github.com/huanhulan">Lex Huang</a>, Mar 2018</small>
+                </p>
+                <aside class="notes">
+                    今天主要和大家分享下函数式响应式编程。以sodium为例子。
+                </aside>
+            </section>
+            <section data-background="#000" data-transition="fade-in fade-out">
+                <h3 style="background: red">WARNING</h3>
+                <p>
+                    <small>
+                        Here is a simple introduction to
+                        <i>Functional Reactive Programming</i> (FRP), we won't go deeper into the mathematical theories behind
+                        the paradigm or explain the different implementations or types of it.
+                        <br> Note that FRP fits some problems better than others. User interfaces and networking are two event-based
+                        areas where it fits especially well. Not surprisingly, FRP is excellent for web applications. For
+                        other situations, other paradigms like actor model would be more suitable.
+                    </small>
+                    <aside class="notes">
+                        <p>不深入探讨数学原理</p>
+                        <p>不探讨其他类型的frp及实现，只探讨push-based(数据驱动)的frp。还存在pull-based（需求驱动）的frp</p>
+                        <p>问题域：如何编写更简洁更准确的事件驱动代码</p>
+                    </aside>
+                </p>
+            </section>
+            <section data-transition="convex" data-background-transition="fade">
+                <section>
+                    <h2>Project, meet complexity wall...</h2>
+                    <p>Simple things taking too long.</p>
+                    <p class="fragment">Rewritten from scratch!</p>
+                    <p class="fragment">And a million dollars later...</p>
+                    <p class="fragment">It hits the same wall again!</p>
+
+                    <aside class="notes">
+                        <p>sodium的作者参与了一个基于JAVA的嵌入式系统的配置工具的开发，当项目进展问题域：基于事件到某一阶段的时候，软件甚至难以在2周内增加一个check box到屏幕上 因为他们不得不将布尔值传递到嵌套很深的接口和抽象层里去。
+                        </p>
+                        <p>为了解决这个问题，他们设计出了一个响应式编程库，后来发现他们构建了一个最基础FRP系统。而使用这个库后，再实现同样的需求，只需要一行代码。</p>
+                        <p>这里我们通过一个简单的方法来度量复杂度：为了理解一个程序所要花费的人力和时间。</p>
+                    </aside>
+                </section>
+                <section>
+                    <img src="img/disaster.jpg" alt="">
+                </section>
+            </section>
+            <section>
+                <section>
+                    <h2>What goes wrong?</h2>
+                    <img src="img/questioning1.jpg" alt="">
+                </section>
+                <section>
+                    <h3>The State machines are great</h3>
+                    <div class="book-introduction">
+                        <img class="book-introduction__book" src="./img/state-machine.png" alt="book">
+                        <div class="book-introduction__info">
+                            <p>the old school
+                                <i>state machine</i> works in the following way:</p>
+                            <ol>
+                                <li>An input event comes into the system.</li>
+                                <li>The program logic makes decisions based on the input event and the current program state.
+                                </li>
+                                <li>The program logic changes the program state.</li>
+                                <li>The program logic may also produce output.</li>
+                            </ol>
+                            <p>It tends to be extremely efficient</p>
+                            <p>
+                                We could say that all programs are fundamentally state machines.
+                            </p>
+                        </div>
+                    </div>
+                    <aside class="notes">
+                        状态机是一个很棒的理念，根据输入和现有的状态决定程序的下一走向。某种意义上所有程序都是状态机。
+                    </aside>
+                </section>
+                <section>
+                    <h3>but...</h3>
+                    <p>codes written in a traditional state-machine style tends to be
+                        <b>unreadable</b> and
+                        <b>brittle</b>. </p>
+                    <p>codes become
+                        <b>hard to reason about</b> as the program goes bigger.</p>
+                    <p>And a programmer’s main task is to structure clean codes.</p>
+                    <aside class="notes">
+                        但是问题在于代码编写层面。
+                        状态机很容易让代码变得难懂和零碎。这样随着程序规模的扩大而变得难以维护。
+                    </aside>
+                </section>
+                <section>
+                    <h3>
+                        <b>Observer-pattern</b> saves the day! </h3>
+                    <h4>But wait...</h4>
+                    <img src="img/six-plagues.png" alt="six plagues of Observer-pattern" width="60%" style="margin: 0;">
+                    <footer>
+                        <small>six plagues of Observer-pattern</small>
+                    </footer>
+                    <aside class="notes">
+                        <ul>
+                            <li>
+                                <b>不可预测顺序</b>—在一个复杂的侦听器构成的网络中，事件的接收顺序依赖于监听器的注册顺序。这种隐性依赖是有害的。 FRP 使事件的处理顺序无关紧要, 因为从外部是无法察觉到离散的事件的。
+                                <p>比如,B&C同时监听A，而C还监听了B，则对于C我们很难判断哪个事件先到达</p>
+                            </li>
+                            <li>
+                                <b>错过第一个事件</b>—这可能很难保证你在发送第一个事件的时候已经注册你的监听器。FRP 是事务性的, 所以有可能提供此项保证。
+                            </li>
+                            <li>
+                                <b>混乱状态</b>—回调将代码变成了传统的状态机风格,这很容易让代码变得难以维护。而FRP带来了秩序。
+                            </li>
+                            <li>
+                                <b>线程问题</b>—试图使侦听器线程安全可能导致死锁, 而且很难保证在注销侦听程序后不会收到更多回调。FRP消除了这些问题。
+                            </li>
+                            <li>
+                                <b>泄露回调</b> —如果忘记取消注册侦听器, 程序将会有内存泄漏。侦听器会反转自然数据依赖性, 但不像我们希望的那样反转存活时间上的依赖关系。FRP可以做到这一点。
+                            </li>
+                            <li>
+                                <b>不小心地递归</b>—更新本地状态和通知侦听器的顺序可能是致命的, 容易犯错误，比如在一个监听器里发送事件可能导致程序进入递归。FRP消除了这个问题。
+                            </li>
+                        </ul>
+                    </aside>
+                </section>
+                <section data-background-image="">
+                    <h3>When State gets messy...</h3>
+                    <div class="book-introduction">
+                        <img class="book-introduction__book" src="img/reboot.jpg" alt="book">
+                        <div class="book-introduction__info">
+                            <p>
+                                <b>KEEP CALM</b> and
+                                <b>REBOOT</b>.</p>
+                            <p class="fragment">
+                                <b>CTRL+ALT+DELETE</b> fixes everything.</p>
+                            <p class="fragment">If all else fails,
+                                <b>RESTART</b>.</p>
+                            <p class="fragment">Still not work?</p>
+                            <p class="fragment">
+                                <b>Restart the world!</b>
+                            </p>
+                        </div>
+                    </div>
+                    <aside class="notes">
+                        保持冷静 <br>
+                        重启程序 <br>
+                        CTRL+ALT+DELET <br>
+                        重启电脑 <br>
+                        重启世界
+                    </aside>
+                </section>
+                <section data-background-image="img/Nukesds2.webp"></section>
+            </section>
+            <section data-transition="convex">
+                <section>
+                    <h3>Here comes the
+                        <b>functional reactive programming</b>
+                        <i>(frp)</i>
+                    </h3>
+                    <p>A specific method of
+                        <b>reactive programming</b> that enforces the rules of functional programming, particularly the property
+                        of
+                        <b>compositionality</b>.</p>
+                    <p>
+                        <small>
+                            <a href="http://conal.net/">Conal Elliott</a> is one of the inventors of FRP, this concept was first introduced in his paper
+                            <i>
+                                <a href="http://conal.net/papers/icfp97/">Functional Reactive Animation
+                                </a>
+                            </i> to composing richly interactive, multi-media animations.
+                        </small>
+                    </p>
+                    <aside class="notes">
+                        函数式响应编程可以给刚刚提到的6个bug提供一个解决途径。<br>
+                        这是用函数式编程的“组合性”思想应用于响应式编程上的一个结合产物。<br>
+                        Conal Elliott 是这种编程范式的发明者之一。这个概念第一次出现在他的论文Functional Reactive Animation 中
+                    </aside>
+                </section>
+                <section>
+                    <h2>What is functional reactive programming?</h2>
+                    <img src="img/lay-of-land.png" alt="">
+                    <p>FRP is a subset of both functional and reactive programming</p>
+                </section>
+                <section>
+                    <h3>What is reactive programming</h3>
+                    <div class="book-introduction">
+                        <img src="img/rxjs.png" alt="rxjs" class="book-introduction__book">
+                        <div class="book-introduction__info">
+                            <p>A broad term meaning that a program is </p>
+                            <ol>
+                                <li>
+                                    <b>event-based</b>,</li>
+                                <li>acts in response to input, and</li>
+                                <li>is viewed as a
+                                    <b>flow of data</b>, instead of the traditional flow of control.</li>
+                            </ol>
+                            <p> It doesn’t dictate any specific method of achieving these aims. Reactive programming gives
+                                <b>looser coupling</b> between program components, so the code is more modular.
+                            </p>
+                            <p> Microsoft’s
+                                <i>
+                                    <a href="http://reactivex.io/">Reactive Extensions</a>
+                                </i> (
+                                <b>Rx</b>) is mostly concerned with chaining event handlers, and it gives you many options for
+                                how you do it. </p>
+                        </div>
+                    </div>
+                    <aside class="notes">
+                        响应式编程是一个比较宽泛的概念。大体上来说，这种编程范式有如下特点：<br>
+                        1. 基于事件<br>
+                        2. 对输入做出响应<br>
+                        3. 可以将事件看作是数据流，而不是控制流<br>
+                        这种编程范式强调松耦合，因而天生适合模块化编程。<br>
+                        微软的Rx是它的一种实现。链式操作是其最大一个特征。
+                    </aside>
+                </section>
+                <section data-background-image="img/lambda.png">
+                    <h3>What is functional-programming</h3>
+                    <p>
+                        <small>A style or paradigm of programming based on functions, in the mathematical sense of the word. It
+                            deliberately avoids shared mutable state, so it implies the use of immutable data structures,
+                            and it emphasizes
+                            <b>
+                                <i>Compositionality</i>
+                            </b> and
+                            <b>Referential transparency</b>
+                        </small>
+                    </p>
+                    <aside class="notes">函数式编程基于数学定义中的函数，强调不变性，特点是复合性原理和引用透明性</aside>
+                </section>
+                <section>
+                    <h3>what's the
+                        <i>compositionality</i>
+                    </h3>
+                    <p>The
+                        <b>principle of compositionality</b>:</p>
+                    <blockquote>
+                        The meaning of an expression is determined by the <u>meanings</u> of its parts and the rules used to combine them.
+                    </blockquote>
+                    <div data-markdown>
+                        <script type="text/template">
+                            Thus the javascript code
+                            ```javascript 
+                            const foo = x=>f(g(x))
+                            ```
+                            is equal to haskell code
+                            ```haskell
+                            foo=f . g
+                            ```
+                            since they all mean *g composed with f*.
+                        </script>
+                    </div>
+                    <aside class="notes">
+                        <p>在数学、语义学和语言哲学中，复合性原理是指，一个复杂表达式E的意义是由E的其各组成部分的意义以及E的语义结构（也就是用以结合其个组成部分的规则）来决定的。</p>
+                        <p>
+                            复合性原理认为，在有意义的句子中，如果实词部分被从句子中脱离出去，所剩下的东西就是复合的规则。例如句子“苏格拉底是哲学家”。一旦有意义的词法项“苏格拉底”和“哲学家”被取走，剩下了“是”就用來为描述“苏格拉底”和“哲学家”之关系。
+                        </p>
+                        <p>这就要求我们理解“意义”的定义(这是我将meaning标注出来的原因)，在语义学上，“意义”表示的是通过人类语言表达的信息内容，信息有结构，结构则隐含了复杂度，而作为程序员，我们和复杂度做斗争。</p>
+                    </aside>
+                </section>
+                <section>
+                    <h3>how does compositionality help</h3>
+                    <p>
+                        <small>
+                            Without compositionality, the consequences of composing program modules are ad hoc.
+                        </small>
+                    </p>
+                    <hr>
+                    <p>
+                        <small>FRP is compositional because it imposes mathematical rules that force the interaction of program
+                            elements to be simple and predictable by using
+                            <i>denotational semantics
+                            </i>. So we can think in teams of dependency and think declaratively.
+                        </small>
+                    </p>
+                    <aside class="notes">
+                        <p>在没有复合性原理的情况下，程序模块之间的运行的结果是不稳定的。而有了复合性原理则可以使的程序的含义独立于顺序，只要其组成部分和组合规则表达同样的含义就行。这样我们就可以从依赖和声明的角度思考程序</p>
+                    </aside>
+                </section>
+                <section>
+                    <h3>what is Referential transparency</h3>
+                    <blockquote class="quote">
+                        <p>
+                            <small>
+                                Referential transparency is an oft-touted property of (pure) functional languages, which makes it easier to reason about
+                                the behavior of programs. I don't think there is any formal definition, but it usually means
+                                that an expression always evaluates to the same result in any context. Side effects like
+                                (uncontrolled) imperative update break this desirable property. C and ML are languages with
+                                constructs that are not referentially transparent.
+                            </small>
+                        </p>
+                        <footer>
+                            <small>from
+                                <a href="https://wiki.haskell.org/Referential_transparency">Haskell wiki</a>
+                            </small>
+                        </footer>
+                    </blockquote>
+                    <aside class="notes">
+                        引用透明性可以被理解为一个表达式的结果独立于其所处的上下文，函数的返回值只依赖于其输入值，输入值不变，输出则不变。
+                    </aside>
+                </section>
+                <section>
+                    <h3>Too Metaphysica? </h3>
+                    <img src="img/questioning2.jpg.jpg" alt="">
+                    <aside class="notes">这样说可能太过形而上了点。那么我这里直接给出一些实际的指导原则。</aside>
+                </section>
+                <section>
+                    <h4>So let's be practical</h4>
+                    <ul>
+                        <li>
+                            <small>You must not perform any I/O.</small>
+                        </li>
+                        <li>
+                            <small>You must not throw any exceptions unless they’re caught and handled within the function.
+                            </small>
+                        </li>
+                        <li>
+                            <small>You must not read the value of any external variable if its value can change, but constants are
+                                allowed and encouraged.
+                            </small>
+                        </li>
+                        <li>
+                            <small>You must not modify any externally visible state.</small>
+                        </li>
+                        <li>
+                            <small>You must not keep any state between invocations of the function.</small>
+                        </li>
+                    </ul>
+                    <p class="fragment">In short, the function must have
+                        <b>no external effects</b> other than through the returned value, and it must
+                        <b>not be affected by any external state</b>.</p>
+                    <aside class="notes">
+                        <ul>
+                            <li>不做i/o</li>
+                            <li>在函数内部处理异常</li>
+                            <li>函数不读取于外部变量</li>
+                            <li>函数不修改外部变量</li>
+                            <li>在函数调用之间不保存任何状态</li>
+                        </ul>
+                        长话短说就是函数除了返回值外对外没有别的作用，也不会引起外部状态的改变。
+                    </aside>
+                </section>
+                <section>
+                    <h4>the beauty of purity</h4>
+                    <img src="img/pure.png" alt="">
+                </section>
+                <section>
+                    <h3>Thinking in terms of
+                        <b>dependency</b>
+                        <br>
+                        <small>vs</small>
+                        <br> Thinking in terms of
+                        <b>sequence</b>
+                    </h3>
+                    <div class="book-introduction">
+                        <img src="img/non-FRP%20style.jpg" alt="" class="book-introduction__book">
+                        <div class="book-introduction__info">
+                            <p>
+                                Traditionally, software is expressed as a sequence of steps.
+                                <br> Each step has a relationship with the steps that came before.
+                                <br> Some steps will depend on the previous step, and some may depend on things from much earlier.
+                            </p>
+                            <p>
+                                The problem with representing dependencies as a sequence comes when you go to change the code.
+                            </p>
+                        </div>
+                    </div>
+                    <aside class="notes">
+                        一般来说，软件是由步骤序列来表示的。每一步都和前几步相关。
+                        这种将依赖用时序来表达的问题在于会给修改代码造成困难。
+                    </aside>
+                </section>
+                <section>
+                    <h3 style="display: none">Thinking in terms of
+                        <b>dependency</b>
+                        <br>
+                        <small>vs</small>
+                        <br> Thinking in terms of
+                        <b>sequence</b>
+                    </h3>
+                    <div class="book-introduction">
+                        <div class="book-introduction__book">
+                            <img src="img/minimal.png" alt="conceptual diagram">
+                            <footer>
+                                <small>Given a conceptual diagram like the above, we can extract the dependency relationships easily
+                                </small>
+                            </footer>
+                        </div>
+                        <div class="book-introduction__info">
+                            <p>In FRP, you express dependencies directly, the FRP engine knows all these relationships, from
+                                that, the correct sequence is guaranteed.</p>
+                            <p>So you can just add or remove the dependencies, and the sequence is automatically updated. It’s
+                                impossible to make a sequence mistake.</p>
+                        </div>
+                    </div>
+                    <aside class="notes">
+                        在frp中，我们通过数据流向图的形式来声明依赖。而程序执行时序上的关系由frp引擎来决定。
+                        这样做的好处在于可以简单地通过修改流和节点而自动地修改依赖关系，避免由于错误的代码调用顺序造成的错误。
+                    </aside>
+                </section>
+                <section>
+                    <h3>Thinking declaratively</h3>
+                    <h4>what the program is, not what it does</h4>
+                    <aside class="notes">
+                        在介绍函数式编程的时候，我还提到了以声明的方式思考。那我们接下来看看，它到底是什么样一种思考方式。
+                        粗略来看，就是思考东西的含义是什么，而不是它做了什么。
+                    </aside>
+                </section>
+                <section>
+                    <h3 style="display: none">Thinking declarative</h3>
+                    <p>How to cook a lasagna?</p>
+                    <ol>
+                        <li class="fragment">
+                            <small>Heat oven to 350°F.</small>
+                        </li>
+                        <li class="fragment">
+                            <small>Brown meat in large skillet on medium-high heat. Meanwhile, mix 1-1/4 cups mozzarella, ricotta,
+                                1/4 cup Parmesan, parsley and egg until blended.Drain meat;
+                            </small>
+                        </li>
+                        <li class="fragment">
+                            <small>return to skillet. Stir in pasta sauce. Pour water into empty sauce jar; cover and
+                                shake well. Add to skillet; stir until blended.
+                            </small>
+                        </li>
+                        <li class="fragment">
+                            <small>Spread 1 cup meat sauce onto bottom of 13x9-inch baking dish; top with layers of 3 lasagna noodles,
+                                1/3 of the ricotta mixture and 1 cup meat sauce. Repeat layers twice. Top with remaining
+                                noodles and meat sauce. Sprinkle with remaining mozzarella and Parmesan. Cover with foil
+                                sprayed with cooking spray.
+                            </small>
+                        </li>
+                        <li class="fragment">
+                            <small>Bake 1 hour or until heated through, uncovering after 45 min. Let stand 15 min. before cutting
+                                to serve.
+                            </small>
+                        </li>
+                    </ol>
+                    <p class="fragment">Now, can you imagine what you would get?</p>
+                    <aside class="notes">
+                        <p>这里不要说出lasagana的中文名：意大利千层面</p>
+                        <ul>
+                            <li>炒锅烧热入少许橄榄油，爆香洋葱碎；然后放入白蘑菇翻炒。</li>
+                            <li>翻炒均匀后，放入红椒丁继续翻炒。</li>
+                            <li>加入牛肉馅，大火翻炒至变色。</li>
+                            <li>倒入番茄膏，入胡椒粉、盐调味，搅拌均匀。 </li>
+                            <li>不用加盖，用小火慢慢炖，让蔬菜的水份适当蒸发，大约15-20分钟，即成肉酱。</li>
+                            <li>准备一方型烤盘，盘底抹油防粘，然后铺上肉酱，为第一层。</li>
+                            <li>铺上干面皮，为第二层。</li>
+                            <li>干面皮上涂抹上白色精华酱，为第三层。</li>
+                            <li>如此反复，再铺上肉酱——干面皮——白色精华酱，按此程序反复操作3遍。（共三层干面皮，操作完毕后，最上层应是白色精华酱）</li>
+                            <li>表面均匀撒上马苏里拉奶酪丝。</li>
+                            <li>放入预热好的烤箱200度，中层上下火约60分钟至表皮金黄即成。 </li>
+                        </ul>
+                        <p>说了这么多，大家能想想这道菜长什么样么</p>
+                    </aside>
+                </section>
+                <section>
+                    <h3 style="display: none">Thinking declarative</h3>
+                    <p>Nope! This is no way to write a cookbook:
+                        <br> it’s an
+                        <b>operational definition</b> of lasagna</p>
+                    <aside class="notes">很难，这其实是一个操作说明，很难直观想象菜品的样子。</aside>
+                </section>
+                <section>
+                    <h3 style="display: none">Thinking declarative</h3>
+                    <p>This is how our cookbook would be written:</p>
+                    <ol>
+                        <li>
+                            <small>
+                                <i>Lasagna</i>
+                                <b>is</b> grated cheese
+                                <b>on</b> cheese sauce
+                                <b>on</b> flat pasta
+                                <b>on</b>
+                                cheese sauce
+                                <b>on</b>
+                                Bolognese
+                                <b>on</b> flat pasta
+                                <b>on</b> cheese sauce
+                                <b>on</b> Bolognese
+                                <b>on</b> flat pasta
+                                <b>on</b> cheese sauce baked for 45 minutes.
+                            </small>
+                        </li>
+                        <li>
+                            <small>
+                                <i>Bolognese</i>
+                                <b>is</b> onion and oil fried until golden mixed with ground beef mixed with tomato simmered
+                                for 20 minutes.
+                            </small>
+                        </li>
+                        <li>
+                            <small>
+                                <i>Cheese sauce</i>
+                                <b>is</b> milk and cheese added progressively to
+                                <i>roux</i> while frying it until the sauce thickens.
+                            </small>
+                        </li>
+                        <li>
+                            <small>
+                                <i>Roux</i>
+                                <b>is</b> flour and butter fried briefly</small>
+                        </li>
+                        <li>
+                            <small>
+                                <i>Baked</i>
+                                <b>is</b> put in an oven dish in a hot oven.</small>
+                        </li>
+                        <li>
+                            <small>
+                                <i>Fried</i>
+                                <b>is</b> put in a pan on high and mixed frequently</small>
+                        </li>
+                        <li>
+                            <small>
+                                <i>Simmered</i>
+                                <b>is</b> put in a pan on low and mixed infrequently</small>
+                        </li>
+                    </ol>
+                    <aside class="notes">
+                        <p>lasagna是磨碎的干酪沙司放在芝士酱上放在宽意大利面条上放在奶酪酱上放在肉酱上放在宽意大利面条上放在芝士酱上放在肉酱上放在宽意大利面条上放在芝士酱上，烤45分钟。</p>
+                        <p>肉酱是洋葱和油煎至金黄色，混合了碎牛肉和番茄炖20分钟。</p>
+                        <p>芝士酱是牛奶和奶酪，在炒菜的过程中逐渐加入乳酪面，直到酱汁变稠。</p>
+                        <p>乳酪面是面粉和黄油，简单煎一下。</p>
+                        <p>烤指的是将烤盘放入热烤炉。</p>
+                        <p>油炸是在高火锅中快速搅拌。</p>
+                        <p>炖指的是文火锅里，不经常搅拌。</p>
+                        <p>flat pasta:宽意大利面条</p>
+                        <p>Bolognese:肉酱</p>
+                        <p>Roux:奶油炒面糊</p>
+                        <p>Baked:烤</p>
+                        <p>Fried:煎</p>
+                        <p>Simmered:炖</p>
+                    </aside>
+                </section>
+                <section data-background-image="img/lasagna.jpg">
+                    <h3 style="display: none">Thinking declaratively</h3>
+                </section>
+                <section>
+                    <h3 style="display: none">Thinking declaratively</h3>
+                    <p>Notice a few things:</p>
+                    <ul>
+                        <li class="fragment">
+                            We express dependencies directly. The sequence is derived from them.
+                        </li>
+                        <li class="fragment">
+                            It’s closer to a conceptual view of the food, so it’s easy to understand.
+                        </li>
+                        <li class="fragment">
+                            We can compose the parts into new recipes easily.
+                        </li>
+                    </ul>
+                    <aside class="notes">
+                        <p>我们直接表达了依赖，而顺序则从依赖中得到表达。也就是说我们不在乎起司酱是在肉酱前做的还是后做的。我们只关心它放在谁上面。</p>
+                        <p>这样更接近概念上的食物，更容易理解</p>
+                        <p>我们很容易将它混入到别的菜品制作过程中以得到新的食谱</p>
+                    </aside>
+                </section>
+                <section>
+                    <h3>Thinking declaratively</h3>
+                    <footer>
+                        <small>
+                            Common declarative languages include those of
+                            <a href="https://en.wikipedia.org/wiki/Database_query_language" class="mw-redirect" title="Database query language">database query languages</a> (e.g.,
+                            <a href="https://en.wikipedia.org/wiki/SQL" title="SQL">SQL</a>,
+                            <a href="https://en.wikipedia.org/wiki/XQuery" title="XQuery">XQuery</a>),
+                            <a href="https://en.wikipedia.org/wiki/Regular_expression" title="Regular expression">regular expressions
+                            </a>,
+                            <a href="https://en.wikipedia.org/wiki/Logic_programming" title="Logic programming">logic programming
+                            </a>,
+                            <a href="https://en.wikipedia.org/wiki/Functional_programming" title="Functional programming">functional programming
+                            </a>, and
+                            <a href="https://en.wikipedia.org/wiki/Configuration_management" title="Configuration management">configuration management
+                            </a> systems.
+                        </small>
+                    </footer>
+                </section>
+                <section>
+                    <h3>Life cycle of FRP</h3>
+                    <div class="book-introduction">
+                        <div class="book-introduction__book">
+                            <img src="img/life-cycle-FRP.png" alt="">
+                        </div>
+                        <ul class="book-introduction__info">
+                            <li>
+                                <h4>Stage 1: Initialization</h4>
+                                <p>Typically during program startup, FRP code statements are converted into a directed graph
+                                    in memory.</p>
+                            </li>
+                            <li>
+                                <h4>Stage 2: Running</h4>
+                                <p>For the rest of the program execution you feed in values and turn the crank handle, and the
+                                    FRP engine produces output.</p>
+                            </li>
+                        </ul>
+                    </div>
+                    <aside class="notes">
+                        <p>1.初始化：根据声明在内存中构造有向图。</p>
+                        <p>2.运行：在其他程序执行的时候FRP引擎则根据用户输入产生输出</p>
+                    </aside>
+                </section>
+                <section>
+                    <h4>What's not FRP</h4>
+                    <blockquote class="quote">
+                        <p>
+                            <small>
+                                I’m glad you’re starting by asking about a specification rather than implementation first. There are a lot of ideas floating
+                                around about what FRP is. For me it’s always been two things: (a) denotative and (b) temporally
+                                continuous. Many folks drop both of these properties and identify FRP with various implementation
+                                notions, all of which are beside the point in my perspective.
+                            </small>
+                        </p>
+                        <p>
+                            <small>
+                                By “denotative,” I mean founded on a precise, simple, implementation-independent, compositional semantics that exactly specifies
+                                the meaning of each type and building block. The compositional nature of the semantics then
+                                determines the meaning of all type-correct combinations of the building blocks
+                            </small>
+                        </p>
+                        <footer>
+                            <small>
+                                <a href="https://stackoverflow.com/questions/5875929/specification-for-a-functional-reactive-programming-language">Elliott’s reply to a Stack Overflow post, “Specification for a Functional Reactive Programming
+                                    language”
+                                </a>
+                            </small>
+                        </footer>
+                    </blockquote>
+                    <p>
+                        <small>A true FRP system has to be specified using
+                            <b>denotational semantics</b>. FRP controls what you do more tightly and gives you strong guarantees
+                            in return.
+                        </small>
+                    </p>
+                    <aside class="notes">
+                        <p>什么不是frp呢？必要条件：1.指称语义 2.响应式编程</p>
+                        指称语义是一门编程语言的数学表示，意味着(a)每个类型都有对应的精确简明的数学含义(b)每个原语和操作符都有对于一个对于其成分的功能的简明意义。
+                        <br> 指称语义是函数式编程之所以能行之有效的保证
+                        <br> 对于FRP系统，它提供了：系统的官方说明和所有情况下的所有组成元素的最重要的compositionality的证明
+                    </aside>
+                </section>
+                <section>
+                    <h2>Wait...Why not just fix listeners?</h2>
+                    <p>If you fix the problems with listeners, you’ll invent FRP. </p>
+                    <p>
+                        <small>In fact, many people in industry have done exactly this, usually for a specific problem domain, and
+                            usually without calling it FRP.
+                        </small>
+                    </p>
+                    <aside class="notes">
+                        <p>实现一个FRP系统还是比较难的。Sodium团队在参考别人的实现的同时依旧花了6人月的工作量来理解和开发Sodium。而最初版本的库只有1000行代码!</p>
+                        <p>Sodium团队认为困难在于事件处理机制本身是困难的，在没有frp库的帮助下，我们每天都在和观察者模式带来的小麻烦作斗争，而写一个frp库则需要一次性对付所有问题。</p>
+                    </aside>
+                </section>
+                <section>
+                    <h2>Now, let's meditate...</h2>
+                </section>
+                <section data-background-image="img/flow-of-codes.png">
+                    <h2 style="display: none;">Now, let's meditate....</h2>
+                    <aside class="notes">
+                        FRP逻辑是一个数据流。数据通过两个数据结构Stream和Cell流入逻辑图中。FRP代码对输入作出响应。数据从输入流向输出。——数据驱动(push-based)
+                    </aside>
+                </section>
+            </section>
+            <section data-transition="convex">
+                <section>
+                    <h2>Introducing
+                        <b>Sodium</b>
+                    </h2>
+                    <div class="book-introduction">
+                        <div class="book-introduction__book">
+                            <a href="https://www.manning.com/books/functional-reactive-programming">
+                                <img src="./img/Blackheath-FRP-HI.jpg" alt="book">
+                            </a>
+                        </div>
+                        <div class="book-introduction__info">
+                            <blockquote class="book-quote">
+                                <p>A gentle introduction to the necessary concepts of FRP.</p>
+                                <footer>From the Foreword by Heinrich Apfelmus, author of the Reactive-banana FRP library
+                                </footer>
+                            </blockquote>
+                            <div data-markdown>
+                                <script type="text/template">
+                                    *Functional Reactive Programming* teaches the concepts and applications of FRP. It offers a careful walk-through of core
+                                    FRP operations and introduces the concepts and techniques you'll need to use FRP in any
+                                    language. * [Book](https://www.manning.com/books/functional-reactive-programming) * [GitHub](https://github.com/SodiumFRP)
+                                    * [Forum](http://sodium.nz/)
+                                </script>
+                            </div>
+                        </div>
+                    </div>
+                    <aside class="notes">
+                        以下以sodium项目中的sodiumjs为例子来介绍frp。这个项目主要为非函数式编程语言提供了正确的frp实现。包括java、c#、c++、swift、rust、Typescript等实现。对于函数式编程语言，frp库的选择有很多，比如sodium之前就有haskell实现，之后由于reactive
+                        banana这个库的流行，因此sodium项目组不再维护haskell版的sodium。 之所以是用typescript实现，是因为函数式编程本身就是追求强类型的。
+                    </aside>
+                </section>
+                <section>
+                    <h2>Operators of the two core data types</h2>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>
+                                    <b>Data Type</b>
+                                </th>
+                                <th>Outputs a Stream</th>
+                                <th>Outputs a Cell</th>
+                                <th>Outputs a value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <th><a href="/#/5/2">Stream</a></th>
+                                <td>
+                                    <ul>
+                                        <li>
+                                            <a href="/#/5/5">never()</a>
+                                        </li>
+                                        <li>
+                                            <a href="/#/5/6">map()</a>
+                                        </li>
+                                        <li>
+                                            <a href="/#/5/7">merge()</a> /
+                                            <a href="/#/5/12">orElse()</a>
+                                        </li>
+                                        <li>
+                                            <a href="/#/5/13">snapshot()</a>
+                                        </li>
+                                        <li>
+                                            <a href="/#/5/15">filter()</a>
+                                        </li>
+                                    </ul>
+                                </td>
+                                <td>
+                                    <ul>
+                                        <li>
+                                            <a href="/#/5/17">hold()</a>
+                                        </li>
+                                    </ul>
+                                </td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <th><a href="/#/5/3">Cell</a></th>
+                                <td>
+                                    <ul>
+                                        <li>
+                                            <a href="/#/5/29">switchS()</a>
+                                        </li>
+                                    </ul>
+                                </td>
+                                <td>
+                                    <ul>
+                                        <li>
+                                            <a href="/#/5/24">map()</a>
+                                        </li>
+                                        <li>
+                                            <a href="/#/5/22">lift()</a>
+                                        </li>
+                                        <li>
+                                            <a href="/#/5/28">switchC()</a>
+                                        </li>
+                                    </ul>
+                                </td>
+                                <td>
+                                    <ul>
+                                        <li>
+                                            <a href="/#/5/25">sample()</a>
+                                        </li>
+                                    </ul>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <aside class="notes">
+                        这一节主要以sodium为例子介绍frp库的数据结构和基本操作符。这些操作符主要是来构造frp逻辑（frp向量图）的。 这节之后会介绍如何让frp逻辑与外界程序进行交互。
+                    </aside>
+                </section>
+                <section>
+                    <h3 style="position: relative;">
+                        <a href="/#/5/1" style="position: absolute;left:0;top:0;bottom:0;margin:auto;text-transform:lowercase;font-size:50%;">←</a> Stream</h3>
+                    <p>class Stream&lt;A&gt;</p>
+                    <ul>
+                        <li>
+                            <p>Stream represents a stream of events.</p>
+                            <ul>
+                                <li>Manipulate the whole stream, not individual occurrences.</li>
+                            </ul>
+                        </li>
+                        <li>Has a type parameter, e.g.
+                            <br>
+                            <b>new Stream&lt;MouseEvent&gt;()</b>
+                        </li>
+                    </ul>
+                    <aside class="notes">
+                        <ul>
+                            <li>事件—一条异步信息从程序的一部分传递到另一部分的过程</li>
+                            <li>Stream—一连串离散事件。当事件通过流传播时，我们有时会说流被触发了. 在其他 FRP 系统中也成为事件流、 observable, or a signal。
+                            </li>
+                        </ul>
+                    </aside>
+                </section>
+                <section>
+                    <h3 style="position: relative;">
+                        <a href="/#/5/1" style="position: absolute;left:0;top:0;bottom:0;margin:auto;text-transform:lowercase;font-size:50%;">←</a> Cell</h3>
+                    <h4>a value that changes over time</h4>
+                    <p>class Cell&lt;A&gt;</p>
+                    <p>Cell is a <b>mutable</b> variable——because it represents the state mutation</p>
+                    <p><a href="/#/5/4">What about referential transparency?</a></p>
+                    <aside class="notes">
+                        cell用来存放/代表应用的状态。举几个例子：
+                        <ul>
+                            <li>鼠标在应用窗口中的坐标</li>
+                            <li>游戏中的人物坐标</li>
+                            <li>时间</li>
+                            <li>汽车的速度, 汽车的里程表, 当前的GPS定位</li>
+                        </ul>
+                    </aside>
+                </section>
+                <section>
+                    <h3 style="position: relative;"><a href="/#/5/3" style="position: absolute;left:0;top:0;bottom:0;margin:auto;text-transform:lowercase;font-size:50%;">←</a>In horror stories, demons can never be killed; </h3>
+                    <h4>they can only be banished.</h4>
+                    <img src="./img/seal.jpg" alt="">
+                    <p>In a similar way, FRP takes the evil of event handling, divides it into little pieces, and
+                            then banishes each piece into an evil-proof box called a stream or a cell. </p>
+                    <aside class="notes">
+                        恐怖电影里，恶魔往往不会被杀死，而是被封印。这样做的好处是，你总可以拍续集来骗钱。
+                        frp也类似，通过将“邪恶”的事件处理分割放在stream和cell这样可以遵循函数式编程原则的数据结构里，来规避麻烦。
+                        虽然Cell里的值是mutable，是可以有副作用的，但是Cell和Stream本身却是immutable的
+                        对了解函数式编程的同学，可以把Cell看做是一个monad，事实上，Stream也是一个monad。至于原因，待会儿降到它的lift操作符时，我会介绍。
+                    </aside>
+                </section>
+                <section>
+                    <h3 style="position: relative;">
+                        <a href="/#/5/1" style="position: absolute;left:0;top:0;bottom:0;margin:auto;text-transform:lowercase;font-size:50%;">←</a> The
+                        <b>never</b> primitive</h3>
+                    <h4>a stream that never fires</h4>
+                    <p>never :: Stream a</p>
+                    <p>In Sodium it doesn’t have the name
+                        <i>never</i>. If A stream constructed in the way has no mechanism to cause it to fire, so it’s guaranteed
+                        never to fire.</p>
+                    <aside class="notes">
+                        <p>never 主要用来移除你不需要的逻辑。两种构造方式：
+                            <ul>
+                                <li>构造一个没有触发器的流来得到</li>
+                                <li>将一个流通过filter等操作转换成never</li>
+                            </ul>
+                        </p>
+                    </aside>
+                </section>
+                <section>
+                    <h3 style="position: relative;">
+                        <a href="/#/5/1" style="position: absolute;left:0;top:0;bottom:0;margin:auto;text-transform:lowercase;font-size:50%;">←</a> The
+                        <b>map</b> primitive</h3>
+                    <h4>transforming a value</h4>
+                    <p>map :: (a -> b) -> Stream a -> Stream b</p>
+                    <div data-markdown>
+                        <script type="text/template">
+                            ```typescript 
+                            const clickStream = new Stream<MouseEvent>();
+                            // emit `true` whenever the `clickStream` fires.
+                            const clickSignal = clickStream.map(e=>true);
+                            ```
+                        </script>
+                    </div>
+                    <img src="./img/functor.png" alt="functor">                    
+                    <aside class="notes">
+                        通过一个转换函数，将带有A类型的stream转换成b类型stream
+                        <p>map在函数是编程里可以认为是一个functor(函子)</p>                         
+                        <p>直观理解是，它将两个stream里的值取出来，通过一个接收一个有函数，用旧stream调用这个函子，得到新的Stream</p>
+                    </aside>
+                </section>
+                <section>
+                    <h3 style="position: relative;">
+                        <a href="/#/5/1" style="position: absolute;left:0;top:0;bottom:0;margin:auto;text-transform:lowercase;font-size:50%;">←</a> The
+                        <b>merge</b> primitive</h3>
+                    <h4>merging streams</h4>
+                    <p>merge :: Stream a -> Stream a -> Stream a</p>
+                    <div data-markdown>
+                        <script type="text/template">
+                            ```typescript
+
+                            const clickStream = new Stream<MouseEvent>();
+                            const keyboardStream = new Stream<KeyboardEvent>();
+                            /* 
+                            * gets `true` whenever tapping the keyboard 
+                            * or click the mouse 
+                            */ 
+                            const inputStream = clickStream.merge( keyboardStream,
+                                (m,k)=>true );
+
+                            ```
+                        </script>
+                    </div>
+                    <a href="/#/5/8" class="link">why do we need it?</a>
+                    <aside class="notes">
+                        合并两个stream，为什么我们需要合并stream呢？特别是对于js这种单线程语言来说
+                    </aside>
+                </section>
+                <section>
+                    <h3 style="position: relative;">
+                        <a href="/#/5/7" style="position: absolute;left:0;top:0;bottom:0;margin:auto;text-transform:lowercase;font-size:50%;">←</a> Simultaneous events</h3>
+                    <p>
+                        Two or more stream events that occur in the same
+                        <a href="/#/5/9">transaction</a>
+                    </p>
+                    <aside class="notes">两个及以上的事件在同一个事物中发生了。</aside>
+                </section>
+                <section>
+                    <h3 style="position: relative;">
+                        <a href="/#/5/7" style="position: absolute;left:0;top:0;bottom:0;margin:auto;text-transform:lowercase;font-size:50%;">←</a> Transaction</h3>
+                    <ul>
+                        <li>This is basically the same idea as the transactions used in databases.</li>
+                        <li>FRP processing takes place in a transactional context.</li>
+                        <li>Sodium automatically starts a transaction whenever an input value is pushed into a stream or cell.
+                        </li>
+                        <li>Any state changes that occur as a result of that input are performed within the same transaction.</li>
+                    </ul>
+                    <a href="/#/5/10">let's see an example</a>
+                    <aside class="notes">
+                        这等同于数据库事务 <br>
+                        frp处理开始于一个事务上下文中 <br>
+                        sodium会在输入被送入一个stream或者cell的时候自动开启新的事务 <br>
+                        所有由于输入所带来的状态变动都会在同一个事物中被处理 <br>
+                        虽然v8是单线程的，一次只能处理一个异步事件，但是在sodium内，一个frp外部输入可以同时触发多个stream。这是“并行”的本质。 光看文字比较抽象。那回到merge，看看他们之间有什么关系？
+                    </aside>
+                </section>
+                <section>
+                    <h4 style="position: relative;">
+                        <a href="/#/5/7" style="position: absolute;left:0;top:0;bottom:0;margin:auto;text-transform:lowercase;font-size:50%;">←</a> EXAMPLE: SIMULTANEOUS EVENTS IN A DRAWING PROGRAM</h4>
+                    <div class="book-introduction">
+                        <img class="book-introduction__book" src="./img/dragNdrop.png" alt="book">
+                        <div class="book-introduction__info">
+                            <ul>
+                                <li>If you click an item, the mouse becomes selected.</li>
+                                <li>If an item is selected, and you click elsewhere, the item gets deselected.</li>
+                            </ul>
+                            <p>But No.3 on the left, a single mouse click will cause two simultaneous events to be generated:
+                                <ul>
+                                    <li>Deselecting the triangle</li>
+                                    <li>Selecting the octagon</li>
+                                </ul>
+                            </p>
+                            <p>You’ll almost certainly want to merge these streams
+                                    at some point in the program. Because these two
+                                    events originate in the same mouse click event,
+                                    they’re simultaneous. </p>
+                            <p>Otherwise, you will get a glitch of the cursor style.</p>
+                        </div>
+                    </div>
+                    <aside class="notes">
+                        <ul>
+                            <li>如果点击一个物品，则鼠标状态展示为选中状态</li>
+                            <li>如果以物品为选中状态，点击别的地方会变为不选中</li>
+                        </ul>
+                        <p>但是左边 No.3 场景, 一个鼠标点击会造成两个事件的产生:
+                            <ul>
+                                <li>不选中三角形</li>
+                                <li>选中八边形</li>
+                            </ul>
+                        </p>
+                        <p>这个时候我们自然希望鼠标样式保持选中状态不变，而不会有一次抖动</p>
+                    </aside>
+                </section>
+                <section>
+                    <img src="./img/merge.png" alt="merge"> 
+                    <p>The mechanics of how merge deals with
+                            simultaneous events</p> 
+                    <aside class="notes">
+                        <p>
+                            如图所示，在一个transaction内,同时处理了这两个事件，而在结束时候，两个事件的正确结果被输出了。这样我们就避免了鼠标的样式抖动。
+                        </p>
+                        现在我们停下来想下，在react-redux的机制内，我们如果要处理相同的问题可能会非常复杂，因为两个不同的action会产生不同的state，
+                        而如果想让两个action相互协作，则需要额外的精力，带来额外的复杂度。比如引入react-saga这样的东西。而这种状态维护中间件有会进一步影响性能和程序复杂度。
+                        前几天，有个哥们用react+redux-saga撸了一个<a href="http://shinima.pw/battle-city/#/gameover">坦克大战</a>，就遇到了性能和复杂度的问题。当然他也很聪明的另辟蹊径解决了。
+                    </aside>                 
+                </section>
+                <section>
+                    <h3 style="position: relative;">
+                        <a href="/#/5/1" style="position: absolute;left:0;top:0;bottom:0;margin:auto;text-transform:lowercase;font-size:50%;">←</a> The
+                        <b>orElse</b> primitive</h3>
+                    <h4>merges two streams and will drop an event in the
+                        <a href="/#/5/8">simultaneous</a> case.</h4>
+                    <p>orElse :: s1.merge(s2, (l, r) -> l)</p>
+                    <aside class="notes">
+                        在一个transaction内，两个merge在一起的流同时被trigger时，总是抛弃后面的那一个。
+                    </aside>
+                </section>
+                <section>
+                    <h3 style="position: relative;">
+                        <a href="/#/5/1" style="position: absolute;left:0;top:0;bottom:0;margin:auto;text-transform:lowercase;font-size:50%;">←</a> The
+                        <b>snapshot</b> primitive</h3>
+                    <h4>capturing the value of a cell</h4>
+                    <p>snapshot :: Stream a -> Cell b -> Stream (a, b)</p>
+                    <aside class="notes">
+                        一个stream流向一个cell后生成一个新的stream
+                    </aside>
+                </section>
+                <section>
+                    <h3 style="position: relative;">
+                        <a href="/#/5/1" style="position: absolute;left:0;top:0;bottom:0;margin:auto;text-transform:lowercase;font-size:50%;">←</a> The
+                        <b>snapshot</b> primitive
+                    </h3>
+                    <div class="book-introduction">
+                        <div class="book-introduction__book">
+                            <img src="./img/snapshot-example.png" alt="book">
+                            <small>Clicking Translate translates the text into mock Latin.</small>
+                        </div>
+                        <img class="book-introduction__info" src="./img/snapshot-diagram.png" alt="book">
+                        <aside class="notes">
+                            假设有这样一个小应用，用户输入的英文被存储在一个cell里，cell命名为text；用户点击translate按钮的事件用sClicked来表达，当用户点击后，会在按钮右侧输出拉丁语的用户输入。
+                            在用户点击的时候，sClick送出一个信号，信号传递到snapshot元语的时候会去给text进行一个快照，把text里的文字送入翻译函数里。输出翻译后的文字到sLatin这个流中。
+                        </aside>
+                    </div>
+                </section>
+                <section>
+                    <h3 style="position: relative;">
+                        <a href="/#/5/1" style="position: absolute;left:0;top:0;bottom:0;margin:auto;text-transform:lowercase;font-size:50%;">←</a> The
+                        <b>filter</b> primitive</h3>
+                    <h4>propagating an event only sometimes</h4>
+                    <p>filter::Stream (Maybe a) -> Stream a</p>
+                    <aside class="notes">
+                        <p>filter元语：只在特定情况下冒泡一个事件</p>
+                        这里Maybe是一个haskell的typeclass，是一个Monad。
+                        别害怕Monad，我这里只是给一个它的类型定义，也不会去解释什么是Monad。而在实际使用中我们不用接触它。
+                        可以将Maybe a理解成这个stream会经过一个过滤器，只有通过这个过滤器的时候才会被触发。
+                        接下来我们看看个merge+filter的例子
+                    </aside>
+                </section>
+                <section>
+                    <h3 style="position: relative;">
+                            <a href="/#/5/1" style="position: absolute;left:0;top:0;bottom:0;margin:auto;text-transform:lowercase;font-size:50%;">←</a> an
+                            <b>merge</b>+<b>snapshot</b>+<b>filter</b> example</h3>
+                    <div data-markdown>
+                        <script type="text/template">
+                            ```typescript
+                            /*
+                            * skipping the definition of the `value`
+                            * just showing how to compose the streams
+                            */
+
+                            const sDelta: Stream<number> = btnPlus.sClicked.map(u => 1)
+                                    .orElse(
+                                        btnMinus.sClicked.map(u => -1)
+                                    );
+                    
+                            const sUpdate: Stream<number> = sDelta.snapshot(value,
+                                (delta, _value) =>{
+                                    return delta + _value;
+                                }).filter(n => n >= 0);
+
+                            ```
+                        </script>
+                    </div>
+                    <iframe></iframe>
+                    <aside class="notes">
+                        这是一个简单的累加器的例子，注意这里最终的值不能小于0；
+                        这里大家注意，两行代码只是写出了这个应用的事件，没有给出如何更新这个应用的状态，也就是最终的“和”
+                    </aside>                  
+                </section>
+                <section>
+                    <h3 style="position: relative;">
+                            <a href="/#/5/1" style="position: absolute;left:0;top:0;bottom:0;margin:auto;text-transform:lowercase;font-size:50%;">←</a> The
+                            <b>hold</b> primitive</h3>
+                    <h4>keeping state in a cell</h4>
+                    <p>hold :: a -> Stream a -> Cell a</p>
+                    <div data-markdown>
+                        <script type="text/template">
+                            ```typescript
+                            const cSomeState = sStreamA.hold("intial_value");
+                            ```
+                        </script>
+                    </div>
+                    <p>let's go back to the <a href="/#/5/18"> last example</a></p>
+                </section>
+                <section>
+                    <h3>Looping hold and snapshot to create an accumulator</h3>
+                    <div class="book-introduction">
+                        <iframe></iframe>
+                        <div class="book-introduction__info">
+                            <img src="./img/loop.png" alt="Conceptual view of accumulating + and - button clicks, with the accumulator circled">
+                            <small>Conceptual view of accumulating <button>+</button> and <button>-</button> clicks, with the accumulator circled</small>              
+                        </div>                        
+                    </div>
+                    <p>Can you see the loop here?</p>
+                    <p><a href="/#/5/19">Why???</a></p>
+                </section>
+                <section>
+                    <h3>Forward references</h3>
+                    <aside class="notes">
+                        向前引用
+                    </aside> 
+                </section>
+                <section>
+                    <h3>The dilemma</h3>
+                    <small>
+                        If you start by making a stream of deltas of 1 when <button>+</button> is clicked and -1 when <button>-</button> is clicked. All you have to do is accumulate the <i>sDelta</i>:</small>
+                    <div data-markdown>
+                        <script type="text/template">
+                            ```typescript
+                            const sUpdate = sDelta.snapshot(cValue, // cValue is undefined
+                                    (delta, value_) -> delta + value_
+                                );
+                            const cValue = sUpdate.hold(0);// whoops, TDZ here...
+                            ```
+                        </script>
+                    </div>
+                    <small>
+                        Unfortunately, Language that without <b>lazy evaluation</b> won’t let you write this, because you’re  <b>defining <i>cValue</i> in terms of
+                                itself</b>. <i>cValue</i> depends on <i>sUpdate</i>, and sUpdate depends on value.
+                    </small>
+                    <aside class="notes">
+                        如果你先构造一个+1 stream和一个-1 stream。你要做的就是将它们合并为sDelta，将sDelta快照到状态cValue上生成sUpdate，而cValue则由sUpdate hold而来。<br>
+                        但是没办法这么做，因为我们没有声明cValue。 <br>
+                        这里就有一个value loop
+                    </aside>
+                </section>
+                <section>
+                    <h3 style="position:relative"><a href="/#/5/1" style="position: absolute;left:0;top:0;bottom:0;margin:auto;text-transform:lowercase;font-size:50%;">←</a> Forward references</h3>
+                    <blockquote>
+                            Value loop—In functional programming, a value defined directly or through other variables in terms of itself.
+                    </blockquote>
+                    <p class="fragment">So how do we do?</p>
+                    <div class="fragment">
+                        <p>A dummy!——<b>CellLoop</b> and the <b>loop</b> operator</b></p>
+                        <div data-markdown>
+                            <script type="text/template">
+                                ```typescript
+                                // our dummy
+                                const value: CellLoop<number> = new CellLoop<number>();
+                                
+                                /*
+                                * sUpdate, sDelta definitions
+                                */
+                                
+                                value.loop(sUpdate.hold(0)); //yeah~
+                                ```
+                            </script>
+                        </div>
+                    </div>
+                    <aside class="notes">
+                        <p>
+                        值循环：一个值是通过另一个值来定义的，而那一个值又通过这个值来定义。                            
+                        </p>
+                        <p>那我们怎么办呢？给一个占位符！</p>
+                        <p>cellloop也是cell类型，只不过在某种意义上支持lazy-evaluation</p>
+                        <p>loop操作符就是实现lazy-evaluation的手段</p>
+                    </aside>
+                </section>
+                <section>
+                    <h3 style="position: relative;">
+                            <a href="/#/5/1" style="position: absolute;left:0;top:0;bottom:0;margin:auto;text-transform:lowercase;font-size:50%;">←</a> The
+                            <b>lift</b> primitive</h3>
+                    <h4>combining cells</h4>
+                    <p>lift ::(A -> B -> C) -> Cell A -> Cell B -> Cell C</p>
+                    <aside class="notes">
+                        <p>lift操作符用来将2个状态结合成一个新的状态。</p>
+                        <p>lift在函数是编程里可以认为是一个functor(函子)</p> 
+                        <p>直观理解是，它将两个cell里的值取出来，通过一个接收一个有函数，这个函数接受两个同一类型的值并生成新的同类型值，通过将两个cell来调用这个函子，得到新的cell</p>
+                        <p>这么说可能有点绕，但是实际很简单，接下来看一个例子</p>
+                    </aside>
+                </section>
+                <section>
+                    <h3 style="position: relative;">
+                            <a href="/#/5/1" style="position: absolute;left:0;top:0;bottom:0;margin:auto;text-transform:lowercase;font-size:50%;">←</a> The
+                            <b>lift</b> primitive</h3>
+                    <div class="book-introduction">
+                        <iframe></iframe>
+                        <div class="book-introduction__info">
+                            <img src="./img/lift.png" alt="Conceptual view of accumulating + and - button clicks, with the accumulator circled">
+                            <small>Conceptual view of adding two text fields together.</small>              
+                        </div>                        
+                    </div>
+                    <div data-markdown>
+                        <script type="text/template">
+                            ```typescript
+                            const a: Cell<number> = textA.text.map(s => parseInt(s));
+                            const b: Cell<number> = textB.text.map(s => parseInt(s));
+                    
+                            const sum: Cell<number> = a.lift(b, (a_, b_) => a_ + b_);
+                            ```
+                        </script>
+                    </div>
+                    <aside class="notes">
+                        两个数字相加的例子
+                    </aside>
+                </section>
+                <section>
+                    <h3 style="position: relative;">
+                            <a href="/#/5/1" style="position: absolute;left:0;top:0;bottom:0;margin:auto;text-transform:lowercase;font-size:50%;">←</a>
+                            <b>mapping</b> cells</h3>
+                            <p>map on cells can be seen as a lift of a single cell.</p>
+                </section>
+                <section>
+                    <h3 style="position: relative;">
+                            <a href="/#/5/1" style="position: absolute;left:0;top:0;bottom:0;margin:auto;text-transform:lowercase;font-size:50%;">←</a> The
+                            <b>sample</b> primitive</h3>
+                    <h4>getting a cell’s value</h4>
+                    <p>sample ::Cell A -> A</p>
+                    <p>This is useful for interacting with non FRP logics.</p>
+                    <aside class="notes">获得cell里的值</aside>
+                </section>
+                <section>
+                    <h3 style="position: relative;">
+                            <a href="/#/5/1" style="position: absolute;left:0;top:0;bottom:0;margin:auto;text-transform:lowercase;font-size:50%;">←</a>
+                            <b>switch</b></h3>
+                    <ul>
+                        <li><p>Allows the data flow graph to change dynamically</p></li>
+                        <li>Use frp logic to modify frp logic</li>
+                    </ul>
+                    <aside class="notes">
+                        <p>正如我之前说的，frp逻辑可以被看做是一个数据流向图。用我们之前学的那些元语，我们只能构造静态的流向图。</p>
+                        <p>但是有些时候我们需要这个图是动态的。比如：</p> 
+                        <ul>
+                            <li>在游戏中增加或者删除角色</li>
+                            <li>在运行时中消除不再合法的程序状态以免出现bug</li>
+                            <li>根据应用路由切换逻辑。比如，游戏中的开始界面、配置界面和游戏中的界面都对应不同的数据流向图</li>
+                        </ul>
+                    </aside>
+                </section>
+                <section>
+                    <h3 style="position: relative;">
+                            <a href="/#/5/1" style="position: absolute;left:0;top:0;bottom:0;margin:auto;text-transform:lowercase;font-size:50%;">←</a>
+                            The concept of switch: a TV remote control</h3>
+                    <div style="width:100%;height:500px;overflow-x:scroll">
+                            <img src="/img/switch-tv.gif" alt="" style="background:wheat;width:60%;">
+                            <div data-markdown>
+                                <script type="text/template">
+                                    ```typescript
+                                    const fuzz:Cell<Image> = ...;
+                                    const one:Cell<Image> = ...;
+                                    const two:Cell<Image> = ...;
+                                    const sButton1:Stream<Unit> = ...;
+                                    const sButton2:Stream<Unit> = ...;
+                                    const selected:Cell<Cell<Image>> = sButton1.map(u -> one).orElse(
+                                        sButton2.map(u -> two)).hold(fuzz);
+                                    const screen:Cell<Image> = Cell.switchC(selected);
+                                    ```
+                                </script>
+                            </div>
+                            <iframe></iframe>
+                    </div>
+                    <small>Modeling a remote control that can switch between TV channels, showing the state
+                            before any button is pressed. The “fuzz” channel is selected by default.</small>
+                    <aside class="notes">
+                        如这样一个例子，电视频道信号由不同的cell来表示。当没有频道被选中，也就是刚开机的时候的白噪声信号也用一个cell来表示 <br>
+                        而切换频道意味着切换cell，而切换频道的动作则由stream来表示。 <br>
+                        那么就会得到如下代码中selected这种数据格式：一个cell中包裹了另一个cell。这就意味着为了得到电视信号，我们得将其拆包出来。而这个拆包的操作，其实就是动态构造frp有向图的操作。<br>
+                        （滚动鼠标到下方demo）
+                    </aside>
+                </section>
+                <section>
+                    <h3 style="position: relative;text-transform: initial;">
+                            <a href="/#/5/1" style="position: absolute;left:0;top:0;bottom:0;margin:auto;text-transform:lowercase;font-size:50%;">←</a>
+                            Cell.switchC</h3>
+                    <p>switchC :: Cell (Cell A) -> Cell A</p>
+                </section>
+                <section>
+                    <h3 style="position: relative;text-transform: initial;">
+                            <a href="/#/5/1" style="position: absolute;left:0;top:0;bottom:0;margin:auto;text-transform:lowercase;font-size:50%;">←</a>
+                            Cell.switchS</h3>
+                    <p>switchS :: Cell (Stream A) -> Stream A</p>
+                </section>
+                <section>
+                    <h3 style="position: relative;">
+                            <a href="/#/5/1" style="position: absolute;left:0;top:0;bottom:0;margin:auto;text-transform:lowercase;font-size:50%;">←</a>
+                            switch use case: zombies game</h3>
+                    <div style="width:100%;height:500px;overflow-x:scroll">
+                        <iframe></iframe>
+                        <div class="book-introduction">
+                            <img class="book-introduction__book" src="./img/zombie-scene.png" alt="book">
+                            <a href="https://github.com/huanhulan/zombicus/blob/master/app/classes/BitableHomoSapiens.ts#L27:12" target="_blank">
+                                <img class="book-introduction__info" src="./img/zombie-transform.png" alt="book">                                
+                            </a>
+                        </div>
+                    </div>
+                    <aside class="notes">
+                        这是一个利用switch来在游戏中增加、删除、转换游戏角色的例子，僵尸能吃人类，僵尸或者人掉落到陷阱里就会被从场景中删除、而每隔几秒就会增加一个人类。
+                        下方是人物转换的frp图示，BitableHomoSapiens是人的角色类，其character包含了真正可以绘制到场景中的角色。角色的转换通过一个stream来触发。
+                    </aside>
+                </section>
+                <section>
+                    <h3>It's time to look say hello to the outside world</h3>
+                    <p><b>Interfacing</b> your FRP code to the rest of your program has two parts:</p>
+                    <ol>
+                        <li>Push events into streams or cells.</li>
+                        <li>Listen to the events from streams or cells.</li>
+                    </ol>
+                    <aside class="notes">
+                        那到目前为止，我们过完了所有构造frp有向图的元语了。现在看看怎么将外界输入输入到frp中；以及如何将frp引擎执行结果输出出来。<br>
+                        这主要分为两个部分：1.推送外界事件到stream或者cell里；2.监听stream或者cell；<br>
+                    </aside>
+                </section>
+                <section>
+                    <h2><b>Operational</b> primitives</h2>
+                    <h4>Interfacing FRP code with the rest of your program</h4>
+                    <ul>
+                        <li>Sending and listening to streams with <b>StreamSink</b></li>
+                        <li>Sending and listening to cells with <b>CellSink</b></li>
+                        <li><b>Transaction</b></li>                
+                        <li>
+                            <b>Operational</b>
+                            <ul>
+                                <li><small>Getting a stream from a cell with <b>updates</b> and <b>value</b></small></li>
+                                <li><small>Spawning new transactional contexts with the <b>split</b> primitive</small></li>
+                            </ul>
+                        </li>        
+                    </ul>
+                    <aside class="notes">
+                        <p>现在我们知道怎么用stream和cell及其元语来构造frp逻辑了，但是到目前为止，这只是一个黑盒子，接受外界输入，但是没有输出。</p>
+                        <p>接下来我将介绍Operational元语，用来将frp逻辑输出到外界（有副作用的代码块中）</p>
+                    </aside>
+                </section>
+                <section>
+                    <h3>StreamSink</h3>
+                    <p>A subclass of Stream that adds a method called <b>send()</b></p>
+                    <div data-markdown>
+                        <script type="text/template">
+                            ```typescript 
+                            const sx = new StreamSink<number>();
+                            sx.listen(x => console.log(x));
+
+                            sx.send(1);
+                            sx.send(2);                            
+                            ```
+                        </script>
+                    </div>
+                    <small>You can register a listener on any Stream with the <b>listen()</b> method.</small>
+                </section>
+                <section>
+                    <h3>CellSink</h3>
+                    <p>A subclass of Cell that has <b>send()</b> and <b>listen()</b></p>
+                    <div data-markdown>
+                        <script type="text/template">
+                            ```typescript 
+                            const x = new CellSink<number>();
+                            x.listen(x => console.log(x));
+
+                            x.send(1);
+                            x.send(2);
+                            ```
+                        </script>
+                    </div>
+                    <aside class="notes">
+                        使用场景并不多见，因为streamsink更加符合直觉：因为stream才是事件的代表。
+                    </aside>
+                </section>
+                <section>
+                    <h3>Transaction</h3>
+                    <p>create a transaction explicitly like this:</p>
+                    <div data-markdown>
+                        <script type="text/template">
+                            ```typescript 
+                            Transaction.run(() => {
+                                ... transactional code ...
+                            }
+                            ```
+                        </script>
+                    </div>
+                    <small>Always construct the data flow graph within a Transaction</small>
+                    <p>Sodium executes a transaction in two steps:</p>
+                    <ol>
+                        <li>Process all stream events simultaneously.</li>
+                        <li>Update all cell values atomically.</li>
+                    </ol>
+                    <aside class="notes">
+                        <p>总是在一个事务内构造frp有向图是一个最佳事件</p>
+                        <p>sodium执行事务分为两步</p>
+                        <p>第一步中，cell不能修改它们的状态，所以这个时候我们可以认为有这样一个瞬间：状态还是旧的，即使新的事件已经到达。而在这个时刻，你可以将所有输入到这个事务里的事件视作是并行的</p>
+                        <p>在第二步中,引擎自动更新在第一步中被挂起的状态。而自动意味着你无法观测到这样一种现象：有的状态被更新了，而有的没有</p>
+                    </aside>
+                </section>
+                <section>
+                    <h3>Transaction</h3>
+                    <p>Multiple send()s in a single transaction</p>
+                    <div data-markdown>
+                        <script type="text/template">
+                            ```typescript 
+                            StreamSink<Integer> s = new StreamSink<number>(
+                                (a, b) => a + b //notice the lambda expression here
+                            );
+                            ...
+                            s.send(1);// transaction 1
+                            Transaction.run(() -> {
+                                s.send(5);
+                                s.send(7);
+                            });// transaction 2
+                            s.send(100);// transaction 3
+                            /*
+                            * 1
+                            * 12
+                            * 100
+                            */
+                            ```
+                        </script>
+                    </div>
+                    <aside class="notes">如果将多个send包在一个transaction.run里，那么他们就只会触发一次事务</aside>
+                </section>
+                <section>
+                    <h3>Operational</h3>
+                    <ul>
+                        <li>Getting a stream from a cell with <b>updates</b> and <b>value</b></li>
+                        <li>Spawning new transactional contexts with the <b>split</b> primitive</li>
+                    </ul>
+                    <aside class="notes">
+                        <p>通过updates或者value这两个操作来从一个cell的变化中得到stream</p>
+                        <p>通过split来从一个事务中派生出新的事务</p>
+                    </aside>
+                </section>
+                <section>
+                    <h3>Getting a stream from a cell with <b>updates</b> and <b>value</b></h3>
+                </section>
+                <section>
+                    <h3>updates</h3>
+                    <ul>
+                        <li><b>updates</b> gives you the discrete updates to a cell.</li>
+                        <li><b>updates</b> is effectively the <i>inverse of <b>hold</b></i>. </li>
+                    </ul>
+                    <div class="book-introduction">
+                        <iframe></iframe>                                            
+                        <div class="book-introduction__info">
+                            <div data-markdown>
+                                <script type="text/template">
+                                    ```typescript 
+                                        const x = new CellSink<number>(0);
+                                        Transaction.run(()=>{
+                                            Operational.updates(x).listen(x_ => {
+                                                const $p = document.createElement('p');
+                                                $p.innerText = x_.toString();
+                                                document.body.appendChild($p);
+                                            });
+                                        });
+                                        // no 0
+                                        x.send(1);        
+                                        x.send(2);
+                                        x.send(3);
+                                    ```
+                                </script>
+                            </div>
+                        </div>
+                    </div>
+                    <aside class="notes">
+                        updates能给你离散的cell的更新的通知。可以视为hold的逆操作。
+                        <p>注意，没有初始的0</p>
+                    </aside>
+                </section>
+                <section>
+                    <h3>value</h3>
+                    <ul>
+                        <li><b>value</b> differs from updates by firing once with the cell’s current value in the transaction where it was invoked. </li>
+                    </ul>
+                    <div class="book-introduction">
+                        <iframe></iframe>                                            
+                        <div class="book-introduction__info">
+                            <div data-markdown>
+                                <script type="text/template">
+                                    ```typescript 
+                                        const x = new CellSink<number>(0);
+                                        Transaction.run(()=>{
+                                            Operational.value(x).listen(x_ => {
+                                                const $p = document.createElement('p');
+                                                $p.innerText = x_.toString();
+                                                document.body.appendChild($p);
+                                            });
+                                        });
+                                        x.send(1);        
+                                        x.send(2);
+                                        x.send(3);
+                                    ```
+                                </script>
+                            </div>
+                        </div>
+                    </div>
+                    <aside class="notes">
+                        updates和value的最大区别就在于value会在事务开始的时候触发一次。<br>
+                        和刚刚同样的代码，但是0被输出了出来。
+                    </aside>
+                </section>
+                <section>
+                    <h3>Spawning new transactional contexts with the <b>split</b> primitive</h3>
+                    <h4>the use case:</h4>                    
+                    <div class="book-introduction">
+                        <div class="book-introduction__book">
+                            <img src="./img/split-1.png" alt="">
+                            <p><small>Packets come into the system,each containing a list of commands.</small></p>
+                        </div>
+                        <div class="book-introduction__info" style="text-align:center">
+                            <img src="./img/split2.png" alt="">
+                            <p>Let’s split the packets into individual commands.</p>
+                        </div>
+                    </div>
+                    <aside class="notes">
+                        什么时候我们会想派生事务呢？假设有这样的场景，两个网络响应带来两个包，每个包中有多条命令，而每个命令应该出于一个单独的事务。
+                    </aside>
+                </section>
+                <section>
+                    <h3>Spawning new transactional contexts with the <b>split</b> primitive</h3>                    
+                    <div class="book-introduction">
+                        <iframe></iframe>                                            
+                        <div class="book-introduction__info">
+                            <div data-markdown>
+                                <script type="text/template">
+                                    ```typescript 
+                                    const sAs = new StreamSink<number[]>();        
+                                    Transaction.run(() =>
+                                    {
+                                        // split
+                                        Operational.updates(
+                                            Operational.split(sAs)
+                                            // make a cellLoop by using .accum()
+                                            .accum(0,(a,b)=>a+b)
+                                        )
+                                        .listen(total=>{
+                                            const $p = document.createElement('p');
+                                            $p.innerText = total.toString();
+                                            document.body.appendChild($p);
+                                        });
+                                    });
+                                    sAs.send([100, 15, 60]);
+                                    sAs.send([1,5]);
+                                    ```
+                                </script>
+                            </div>
+                        </div>
+                    </div>
+                    <aside class="notes">
+                        比如这里我们把两个数组的元素给单独拆出来，虽然页面看起来是同时的，单实际上他们是由两个事务派生出的彼此都是独立的5个事务
+                    </aside>
+                </section>
+                <section>
+                    <h3 style="display: none">Spawning new transactional contexts with the <b>split</b> primitive</h3>                                        
+                    <p>we can also nested the <b>split</b></p>
+                    <div class="book-introduction">
+                        <iframe></iframe>                                            
+                        <div class="book-introduction__info">
+                            <div data-markdown>
+                                <script type="text/template">
+                                    ```typescript 
+                                    //nested split
+                                    const sAss = new StreamSink<string[][]>();
+                                    Transaction.run(()=>{
+                                        Operational.updates(
+                                            Operational.split(Operational.split(sAss))
+                                            .accum('',(a,b)=>a+b)
+                                        )
+                                        .listen(total=>{
+                                            const $p = document.createElement('p');
+                                            $p.innerText = total.toString();
+                                            document.body.appendChild($p);
+                                        });
+                                    });
+                                    sAss.send([['A','B','C'],['D','E'],['F','G']]);
+                                    sAss.send([['H','I'],['J','K','L']]);
+                                    ```
+                                </script>
+                            </div>
+                        </div>
+                    </div>
+                    <aside class="notes">我们还能递归split</aside>
+                </section>
+                <section>
+                    <h3>Now you are ready to go.</h3>
+                    <h4>are you?</h4>
+                    <aside class="notes">
+                        那现在是不是就可以开始使用了呢？先别急。
+                    </aside>
+                </section>
+            </section>
+            <section>
+                <section>
+                    <h4>Another</h4>
+                    <h2><i>what are we doing this for?</i></h2>   
+                    <h4>Moment</h4> 
+                    <aside class="notes">
+                        停下来想想，我们得到了什么，又牺牲了什么。
+                    </aside>                
+                </section>
+                <section>
+                    <p>FRP's restriction:</p>
+                    <ul>
+                        <li>You’re not allowed to modify state directly.</li>
+                        <li>Static typing</li>
+                    </ul>
+                    <aside class="notes">
+                        约束：静态类型、不能直接修改程序的状态
+                    </aside>
+                </section>
+                <section>
+                    <p>What you’re getting in return?</p>
+                    <ul>
+                        <li>simple to reason about</li>
+                        <li>closer to the problem</li>
+                    </ul>
+                    <aside class="notes">好处：更加容易推理；更加接近问题本质</aside>                    
+                </section>
+                <section>
+                    <h2>proofs</h2>
+                    <aside class="notes">那我下这个断言的论据是什么呢？</aside>
+                </section>
+                <section>
+                    <h2><a href="https://github.com/huanhulan/battle_of_paradigms">battle of paradiagms</a></h2>
+                    <p><b>OOP</b> vs <b>FRP</b></p>
+                    <small>with drag&drop example</small>
+                    <aside class="notes">
+                        接下来，我们比较下传统的oop思路和frp思路渐进增强的方式编写一个拖拽应用。
+                    </aside>
+                </section>
+                <section>
+                    <iframe></iframe>
+                    <a href="https://github.com/huanhulan/battle_of_paradigms">https://github.com/huanhulan/battle_of_paradigms</a>
+                    <aside class="notes">
+                        算是变相地请大家做个code review。
+                        <ul>
+                            <li>
+                                <p>先看看最小化的场景：选中后拖拽，但是没有中间过渡的绘制过程。</p>
+                                <ul>
+                                    <li>
+                                        <p>
+                                            <a href="https://github.com/huanhulan/battle_of_paradigms/blob/cb54598d83931c0fe613ab5a97beb71e99091e97/src/operational/base.ts">基类</a>
+                                            <a href="https://github.com/huanhulan/battle_of_paradigms/blob/cb54598d83931c0fe613ab5a97beb71e99091e97/src/operational/minimal.ts">oop</a>
+                                            有两个问题：1. mousedown和mouseup存在依赖关系，但是在这种依赖关系在代码中不直观；2.this.dragging的设定被分散在了两个function中。
+                                        </p>
+                                    </li>
+                                    <li>
+                                        <a href="https://github.com/huanhulan/battle_of_paradigms/blob/cb54598d83931c0fe613ab5a97beb71e99091e97/src/frp/minimal.ts">frp代码</a>
+                                        cDragging的设置只在30行有出现，而drop和drag的关系也在同一行体现了出来。
+                                    </li>
+                                </ul>
+                            </li>
+                            <li>
+                                <p>接下来，我们要求能绘制出中间过程</p>
+                                <ul>
+                                    <li><a href="https://github.com/huanhulan/battle_of_paradigms/blob/cb54598d83931c0fe613ab5a97beb71e99091e97/src/operational/dragging.ts">oop代码</a>，在之前的两个问题上，多了一个新问题：重复地this.dragging===null的判断。还有个小问题就是handleMouseMove做了不止一件事情：状态检查和应用更新</li>
+                                    <li><a href="https://github.com/huanhulan/battle_of_paradigms/blob/cb54598d83931c0fe613ab5a97beb71e99091e97/src/frp/dragging.ts#L24:90">frp代码</a><a href="http://localhost:8000/img/dragging-compare.png" target="_blank">diff</a>，直接从frp图上来看，虽然我们需要做两个dragging===null的判断，但是代码上，我们只要写到一处即可,而红线标注的stream就是我们的修改</li>
+                                </ul>
+                            </li>
+                            <li>
+                                <p>在接下来，我们要处理个问题：有时候如果用户快速点击鼠标，也可能被判断成拖拽，导致选中对象的位置发生些许偏移。为了避免这一点，我们将移动超过5像素的判断为是拖拽。</p>
+                                <ul>
+                                    <li><a href="https://github.com/huanhulan/battle_of_paradigms/blob/cb54598d83931c0fe613ab5a97beb71e99091e97/src/operational/fixed.ts">oop</a>从流程图看，首先多了一个pending状态的判断，那也就意味着继之前的this.dragging后，又多了个this.pending的重复判断、以及分散设置，如图中黄色和蓝色部分所示。</li>
+                                    <li><a href="https://github.com/huanhulan/battle_of_paradigms/blob/cb54598d83931c0fe613ab5a97beb71e99091e97/src/operational/fixed.ts">frp</a>，只增加了蓝色部分，没有多余的变动。<a href="http://localhost:8000/img/fixed-compare.png">diff</a></li>
+                                </ul>
+                            </li>
+                            <li>
+                                <p>最后，我们再加上一个功能，按住shift键时只能沿着x或者y方向拖拽</p>
+                                <ul>
+                                    <li><a href="https://github.com/huanhulan/battle_of_paradigms/blob/cb54598d83931c0fe613ab5a97beb71e99091e97/src/operational/shift.ts">oop</a>除了，这里还多了个潜在issue:this.dragging = this.pending;</li>
+                                    <li><a href="https://github.com/huanhulan/battle_of_paradigms/blob/cb54598d83931c0fe613ab5a97beb71e99091e97/src/frp/shift.ts">frp</a>的变动其实非常小，值增加了一个stream，一个cell，修改了sDrag <a href="http://localhost:8000/img/shift-compare.png">diff</a></li>
+                                </ul>
+                            </li>
+                            <li>
+                                而这个时候大家可能发现了，shiftkey还有个bug，就是如果按住shift时候先顺y轴再倾斜拖拽的话，会有抖动问题，而这个其实也很好修复，时间有限，我这里先不讲。<br>
+                                （跳转ftp页最下方）另外我们再看看之前在并行事件那里提到的鼠标样式问题，其实我们现在版本已经有了这个功能，我们要做的就是监听cDragging然后进行样式替换而已。
+                            </li>
+                        </ul>
+                        从这几个例子我们可以看出，frp非常适合重构和渐进增强式的开发。
+                    </aside>
+                </section>
+            </section>
+            <section>
+                <section data-background-image="img/rocket.jpg">
+                    <h2>advance usages</h2>
+                </section>
+                <section>
+                    <h2>continuous time</h2>
+                    <div class="book-introduction">
+                        <div class="book-introduction__book">
+                            <iframe></iframe>
+                            <small>given the same computational capacities, the animation will always take the same length of time to finish, despite of setting of FPS.</small>
+                        </div>
+                        <div class="book-introduction__info">
+                            <h3><b>Rasterizing time</b></h3>
+                            <p>The mechanism of <i>continuous time</i> is to update a cell representing time before passing external events into the FRP system. </p>
+                            <p>Externally, you’re saying, “Please sample the model at time <i>t</i>,” but within the model, you can think of <u>time</u> as varying continuously.</p>
+                        </div>
+                    </div>
+                    <aside class="notes">
+                        第一个论据：连续时间 <br>
+                        计算机中有两种图形存储：矢量图和栅格化图形。后者意味着图像在内存中是以 bitmap 的形式来存储的，像素是其图像空间的基本单位，而图像的分辨率直接和bitmap大小有关。而缩放图像则意味着丢失质量。<br>
+                        而矢量图则使用数学形式将图像中的轨迹等信息存放起来，矢量图可以很容易地转变为栅格图。<br>
+                        frp的思想可以让我们用同样的理念去构造动画，将动画场景描述为对时间的函数。而根据对时间的抽样速率的变化来得到不同帧率的动画。这样做的好处是，即使丢帧，动画中角色的位置也是正确的；且只要应用所得到的计算能力不变，那么动画始终花费同样的时间结束。<br>
+                        比如这个动画，小球的运动是个抛物线运动，我们只要构造二次曲线就能拟合出球的运动轨迹。而二次曲线的横坐标，就是时间。
+                    </aside>
+                </section>
+                <section>
+                    <h3>Write your own primitives</h3>
+                    <p>such as</p>
+                    <div data-markdown>
+                        <script type="text/template">
+                            ```typescript 
+                            class FrpPromise<A>{
+                                public done:boolean                            
+                                private sDeliver:Stream<A>
+                                private oValue:Cell<A>
+                            
+                                constructor(sDeliver:Stream<A>){
+                                    this.done = false;
+                                    this.sDeliver = sDeliver.once();
+                                    this.oValue = this.sDeliver.map(a => a)
+                                                                .hold(null);
+                                    this.sDeliver.listen(()=>this.done=true)
+                                }
+                                public then(h:any=>any){
+                                    Transaction.run(()=>this._then().listen(h));
+                                    return this;
+                                }
+                                private _then(){
+                                    return Operational.value(this.oValue).filterNotNull()
+                                    .orElse(this.sDeliver).once();
+                                }
+                            }
+                            ```
+                        </script>
+                    </div>
+                    <aside class="notes">
+                        我们可以写自己的promise，注意我这里虽然没有队列存放thenable，但实际上我只是把队列转换成了listner队列交由sodiumjs来做了。<br>
+                        而可以看到实现promise的思路相当直接，监听输入流是否被触发过，被触发了，那这个Promise就是被决议的。
+                    </aside>
+                </section>
+                <section data-background-image="img/lego.jpg">
+                    <h3>modular programming</h3>
+                    <h4>example: petrol pump</h4>
+                </section>
+                <section>
+                    <h4>petrol pump</h4>
+                    <p>Features</p>
+                    <ol>
+                        <li>Three nozzles for three fuels.</li>
+                        <li>Three price displays.</li>
+                        <li>Displays for dollars paid and liters of petrol delivered.</li>
+                        <li>A keypad and display for a preset dollar amount.</li>
+                        <li>A beeper.</li>
+                    </ol>
+                    <aside class="notes">
+                        三个油嘴对应三种汽油、三个价格展示、展示已付的钱和已经加的油、键盘和预设的展示、一个蜂鸣器。
+                    </aside>
+                </section>
+                <section>
+                    <h4>petrol pump</h4>
+                    <p>Features(continue)</p>
+                    <ol start="6">
+                        <li>Fuel will start flow-ing as soon as the nozzle is lifted.</li>
+                        <li>When hanging up the nozzle, the fuel flow stops, and a message is sent to a dialog box that pops up.</li>
+                    </ol>
+                    <aside class="notes">
+                        因为是虚拟的界面，所以汽油会在提起油嘴的时候自动开始注入<br>
+                        当挂起油嘴，停止加油并且展示一个弹框告诉用户加油相关的信息
+                    </aside>
+                </section>
+                <section>
+                    <h4>petrol pump</h4>
+                    <p>Features(continue)</p>
+                    <ol start="8">
+                        <li>You can enter a preset value on the keypad. When you reach 90% of the preset dollar value, the fuel flow slows down, and when you reach it, the fuel flow stops.</li>
+                        <li>You can still change the preset value unless the fuel flow slowing down.</li>
+                        <li>When entering a preset value, the beeper beeps.</li>
+                    </ol>
+                    <aside class="notes">
+                        在键盘里输入预设值。当加油时候，且已经扣的款达到预设值的90%时，加油速度减慢。当扣款等于预设值时，加油停止。<br>
+                        在加油速度没有减慢前，依旧可以改变预设值。<br>
+                        输入键盘的时候，蜂鸣器会响
+                    </aside>
+                </section>
+                <section>
+                    <h4>petrol pump</h4>
+                    <p>Features(continue)</p>
+                    <ol start="11">
+                        <li>Play different sounds for different fuel flowing speed.</li>
+                        <li>the preset value should be greater than 0.</li>
+                    </ol>
+                    <aside class="notes">
+                        不同油的流速用不同的声音来表示<br>
+                        预设值大于0
+                    </aside>
+                </section>
+                <section>
+                    <h4><a href="https://github.com/huanhulan/petrol_pump">petrol pump</a></h4>
+                    <iframe style="width: 50vw;height:50vh"></iframe>                    
+                </section>
+                <section>
+                    <h4>petrol pump</h4>
+                    <img src="./img/petrol-pump.png" alt="">
+                    <p><small>The interface between the pump logic and the (simulated) outside world</small></p>
+                    <aside class="notes">
+                        先把这个系统涉及的stream和cell给列举出来，而通过这个图，我们也就知道了应该切分为那几个模块。
+                    </aside>
+                </section>
+                <section>
+                    <h4>petrol pump</h4>
+                    <p style="text-align: left;">modules:</p>
+                    <ol>
+                        <li><a href="https://github.com/huanhulan/petrol_pump/blob/master/app/frp/input.ts">gather the <i>inputs</i> of the application</a></li>
+                        <li><a href="https://github.com/huanhulan/petrol_pump/blob/master/app/frp/input.ts">gather the <i>outputs</i> of the application</a></li>
+                        <li><a href="https://github.com/huanhulan/petrol_pump/blob/master/app/frp/lifeCycle.ts">define the <i>lifecycle</i> of the fill</a></li>
+                        <li><a href="https://github.com/huanhulan/petrol_pump/blob/master/app/frp/keypad.ts">handle the <i>keypad</i> logic</a></li>
+                        <li><a href="https://github.com/huanhulan/petrol_pump/blob/master/app/frp/notifyPointOfSale.ts">get the <i>preset</i></a></li>
+                        <li><a href="https://github.com/huanhulan/petrol_pump/blob/master/app/frp/notifyPointOfSale.ts">get the <i>notify points of the sale</i></a></li>
+                        <li><a href="https://github.com/huanhulan/petrol_pump/blob/master/app/frp/accumulatePulses.ts">how to get the <i>delivered liters</i></li>
+                        <li><a href="https://github.com/huanhulan/petrol_pump/blob/master/app/frp/fill.ts">how to get the <i>delivered dollars</i></a></li>
+                    </ol>
+                    <p style="text-align: left;">Last thing, don't forget to <a href="https://github.com/huanhulan/petrol_pump/blob/master/app/pump.tsx">put them together, make an <i>frp directed graph</i></a>.</p>
+                </section>
+                <section>
+                    <h4>petrol pump</h4>
+                    <p>module example: keypad logic</p>
+                    <div data-markdown>
+                            <script type="text/template">
+                            ```typescript
+                            import {Cell, CellLoop, Stream, StreamSink, Unit} from "sodiumjs";
+                            import {Keys} from "../types";
+                            
+                            function wireKeypad(
+                                sKeypad: StreamSink<Keys>|Stream<Keys>,
+                                sClear: Stream<Unit>,
+                                // Variant that blocks input keys when active is false
+                                cActive?: Cell<boolean>
+                            ) {
+                                if (cActive) {
+                                    // Noticing the `gate()`
+                                    return wireKeypad(sKeypad.gate(cActive), sClear);
+                                }
+                            
+                                const cValue = new CellLoop<number>();
+                                const sKeyUpdate = sKeypad.snapshot(cValue, (key, value) => {
+                                    if (key === Keys.CLEAR) {
+                                        return 0;
+                                    } else {
+                                        const tmp = value * 10;
+                                        // No more than three digits are allowed.
+                                        return tmp >= 1000
+                                            ? null
+                                            : (key === Keys.ZERO ? tmp :
+                                                key === Keys.ONE ? tmp + 1 :
+                                                    key === Keys.TWO ? tmp + 2 :
+                                                        key === Keys.THREE ? tmp + 3 :
+                                                            key === Keys.FOUR ? tmp + 4 :
+                                                                key === Keys.FIVE ? tmp + 5 :
+                                                                    key === Keys.SIX ? tmp + 6 :
+                                                                        key === Keys.SEVEN ? tmp + 7 :
+                                                                            key === Keys.EIGHT ? tmp + 8 :
+                                                                                tmp + 9);
+                                    }
+                                }).filterNotNull() as Stream<number>;
+
+                                cValue.loop(sKeyUpdate.orElse(sClear.map(u => 0)).hold(0));
+                                const sBeep = sKeyUpdate.map(() => Unit.UNIT);
+                            
+                                return {sBeep, cValue};
+                            }
+                            
+                            export default wireKeypad;
+
+                            ```
+                        </script>
+                    </div>
+                    <aside class="notes">
+                        模块，意味着有特定的接口，有特定的插口。就像是乐高，stream和cell是frp模块天生的两种接线柱。<br>
+                        既然是键盘逻辑，那如刚才那张图所示，它肯定接受2个stream:0~9按钮点击、clear按钮点击，以及一个状态：是否能点击。
+                        那点击键盘还连带着蜂鸣器和预设值的变化，也就是说，它还能输出一个蜂鸣器stream和一个预设值cell。<br>
+                        其与模块也类似<br>
+                    </aside>
+                </section>
+            </section>
+            <section>
+                <section>
+                    <h2>Now we are done</h2>
+                    <h3>one last thing...</h3>
+                </section>
+                <section>
+                    <h2>why not rxjs?</h2>
+                    <iframe style="width: 55vw;height:40vh"></iframe>                
+                </section>
+            </section>
+            <section>
+                <section>
+                    <h2>summary</h2>                    
+                </section>
+                <section>
+                    <h4>FRP can be viewed from different angles:</h4>
+                    <ul>
+                        <li>
+                            <small>It’s a
+                                <b>replacement</b> for the widely used
+                                <i>observer pattern</i>
+                            </small>
+                        </li>
+                        <li>
+                            <small>It’s a
+                                <b>composable</b>, modular way to code
+                                <b>event-driven</b> logic.</small>
+                        </li>
+                        <li>
+                            <small>The program is expressed as a reaction to its inputs, or as a
+                                <b>flow of data</b>
+                            </small>
+                        </li>
+                        <li>
+                            <small>It brings
+                                <b>order</b> to the management of program state.</small>
+                        </li>
+                        <li>
+                            <small>It’s normally implemented as a
+                                <b>lightweight software library</b> in a standard programming language.
+                            </small>
+                        </li>
+                        <li>
+                            <small>It can be seen as a complete
+                                <b>embedded language for stateful logic.</b>
+                            </small>
+                        </li>
+                    </ul>
+                    <aside class="notes">
+                        可以从以下角度来审视frp:
+                        观察者模式的替代品、用可模块化编程的方式编写事件驱动逻辑、程序被表达为对输入的响应，或者数据的流、给程序带来了状态管理、是一个轻量级软件库、可以被看作是状态逻辑的嵌入式语言。
+                    </aside>
+                </section>
+                <section>
+                    <h4>The benefits of FRP</h4>
+                    <ul>
+                        <li>Declarative</li>
+                        <li>referential transparent</li>
+                        <li>immutable</li>
+                        <li>side-effects free</li>
+                        <li>composition</li>
+                    </ul>
+                    <aside class="notes">
+                        总结下。frp带来的优点。
+                        声明式思考更加直观、引用透明、immutable、无副作用、复合性。
+                    </aside>
+                </section>
+            </section>
+            <section data-background-image="img/thankyou.jpg">
+                <aside class="notes">提问环节</aside>
+            </section>
+            <section>
+                <section>
+                    <p style="text-align: left">about sodium:</p>
+                    <ul>
+                        <li><a href="https://github.com/SodiumFRP/">SodiumFRP Github Page</a></li>
+                        <li><a href="https://www.manning.com/books/functional-reactive-programming">book: functional reactive programming</a></li>
+                        <li><a href="http://sodium.nz/">sodium.nz</a></li>                    
+                    </ul>
+                    <p style="text-align: left">essays:</p>
+                    <ul>
+                        <li><a href="http://conal.net/papers/icfp97/">Functional Reactive Animation</a></li>
+                        <li><a href="http://conal.net/papers/push-pull-frp/push-pull-frp.pdf">Push-Pull Functional Reactive Programming</a></li>
+                    </ul>
+                </section>
+                <section>
+                    <p style="text-align: left">other materials:</p>                
+                    <ul>
+                        <li><a href="https://github.com/conal/talk-2015-essence-and-origins-of-frp">The essence and origins of FRP</a></li>     
+                        <li><a href="http://www.guidosalvaneschi.com/REBLS/REBLS2015/attachments/REBLS15_paper_11.pdf">Declarative Deadlines in Functional-Reactive Programming</a></li>
+                        <li><a href="https://jameswtimms.wordpress.com/2015/04/08/a-functional-reactive-game-engine-sodium-explained/">a functional reactive game engine</a></li>                    
+                        <li><a href="https://stackoverflow.com/questions/28238793/what-is-elms-signals-conals-behaviorss-equivalent-in-rx-does-rx-have-suc">What is Elm's Signal's (Conal's Behaviors's) equivalent in RX ? Does RX have such a concept at all?</a></li>
+                    </ul>
+                </section>
+            </section>
+        </div>
+    </div>
+    <script src="lib/js/head.min.js"></script>
+    <script src="js/reveal.js"></script>
+    <script>
+        // More info about config & dependencies:
+        // - https://github.com/hakimel/reveal.js#configuration
+        // - https://github.com/hakimel/reveal.js#dependencies
+        Reveal.initialize({
+            touch: true,
+            progress: true,
+            history: true,
+            dependencies: [{
+                    src: 'plugin/markdown/marked.js'
+                },
+                {
+                    src: 'plugin/markdown/markdown.js'
+                },
+                {
+                    src: 'plugin/notes/notes.js',
+                    async: true
+                },
+                {
+                    src: 'plugin/zoom-js/zoom.js',
+                    async: true
+                },
+                {
+                    src: 'plugin/search/search.js',
+                    async: true
+                },
+                {
+                    src: 'plugin/highlight/highlight.js',
+                    async: true,
+                    callback: function () {
+                        hljs.initHighlightingOnLoad();
+                    }
+                }
+            ]
+        });
+        Reveal.configure({
+            slideNumber: 'c/t',
+            showSlideNumber: 'speaker'
+        });
+        
+        let allIframes;
+        const iframeConfs = {
+            "5/16":[{
+                src:"/demo/filter/index.html",
+                frameborder:"0",
+                style:"background:wheat",
+                sandbox:"allow-scripts allow-pointer-lock allow-same-origin"
+            }],
+            "5/18":[{
+                src:"/demo/filter/index.html",
+                frameborder:"0",
+                class:"book-introduction__book",
+                style:`background:wheat`,
+                sandbox:"allow-scripts allow-pointer-lock allow-same-origin"
+            }],
+            "5/23":[{
+                src:"/demo/lift/index.html",
+                frameborder:"0",
+                class:"book-introduction__book",
+                sandbox:"allow-scripts allow-pointer-lock allow-same-origin",
+                style:`background:wheat`
+            }],
+            "5/27":[{
+                src:"/demo/switch/index.html",
+                frameborder:"0",
+                sandbox:"allow-scripts allow-pointer-lock allow-same-origin",
+                style:`background:wheat;width: 60vw;height:60vh`
+            }],
+            "5/30":[{
+                src:"/demo/zombicus",
+                frameborder:"0",
+                sandbox:"allow-scripts allow-pointer-lock allow-same-origin",
+                style:`background:#fff;width: 60vw;height:60vh`
+            }],
+            "5/39":[{
+                src:"/demo/updates/index.html",
+                frameborder:"0",
+                class:`book-introduction__book`,                
+                sandbox:"allow-scripts allow-pointer-lock allow-same-origin",
+                style:`background:wheat;`
+            }],
+            "5/40":[{
+                src:"/demo/value/index.html",
+                frameborder:"0",
+                sandbox:"allow-scripts allow-pointer-lock allow-same-origin",                
+                class:`book-introduction__book`,
+                style:"background:wheat"
+            }],
+            "5/42":[{
+                src:"/demo/split-1/index.html",
+                frameborder:"0",
+                style:"background:wheat",
+                sandbox:"allow-scripts allow-pointer-lock allow-same-origin",
+                class:`book-introduction__book`
+            }],
+            "5/43":[{
+                src:"/demo/split-2/index.html",
+                frameborder:"0",
+                style:"background:wheat",
+                class:`book-introduction__book`,
+                sandbox:"allow-scripts allow-pointer-lock allow-same-origin"
+            }],
+            "6/5":[{
+                src:"./demo/battle_of_paradigms/index.html",
+                frameborder:"0",
+                sandbox:"allow-scripts allow-pointer-lock allow-same-origin",
+                style:`width: 50vw;height:50vh`
+            }],
+            "7/1":[{
+                src:"./demo/continuous_time/index.html",
+                frameborder:"0",
+                style:`background:#fff`,
+                sandbox:"allow-scripts allow-pointer-lock allow-same-origin"
+            }],
+            "7/8":[{
+                src:"./demo/petrol_pump",
+                frameborder:"0",
+                sandbox:"allow-scripts allow-pointer-lock allow-same-origin",
+                style:`width: 55vw;height:55vh;background:#fff`
+            }],
+            "8/1":[{   
+                src:"./demo/glitch",
+                frameborder:"0",
+                sandbox:"allow-scripts allow-pointer-lock allow-same-origin",
+                style:`width: 55vw;height:40vh`
+            }],                
+        };
+
+        Reveal.addEventListener( 'slidechanged', function(e) {
+            // caching
+            if(!allIframes){
+                allIframes = findTag(e.target,'iframe');
+            }
+            // GC others
+            allIframes.map(iframe=>{
+                iframe.removeAttribute('src');
+            });
+
+            const attrs = iframeConfs[`${e.indexh}/${e.indexv?e.indexv:''}`];
+
+            if(Array.isArray(attrs)){
+                const iframes = findTag(e.currentSlide,'iframe');
+                iframes.map((iframe,idx)=>{
+                    if(iframe.nodeType===1){
+                        Object.keys(attrs[idx]).forEach(attr => {
+                            console.log(attr)
+                            iframe.setAttribute(attr,attrs[idx][attr]);
+                        });
+                    }
+                });
+            }
+        });
+
+        function findTag(root,tagName){
+            if(!root || root.nodeType!==1){
+                return null;
+            }
+            if(root.tagName.toLowerCase()===tagName.toLowerCase()){
+                return [root];
+            }
+            if(root.children.length===0){
+                return null;
+            }
+            const els = Array.prototype.slice.call(root.children,0);
+            return flat(els.map(element => findTag(element,tagName)).filter(e=>!!e));
+        }
+
+        function flat(arr){
+            return arr.reduce((res,e)=>{
+                if(Array.isArray(e)){
+                    res = res.concat(flat(e));
+                }else{
+                    res.push(e);
+                }
+                return res;
+            },[]);
+        }
+    </script>
+</body>
+
+</html>
