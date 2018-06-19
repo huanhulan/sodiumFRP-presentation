@@ -58,6 +58,14 @@
             </section>
             <section data-transition="convex" data-background-transition="fade">
                 <section>
+                    <h2>Let's start with a question</h2>
+                    <div style="height:40vh;width:100%;">
+                        <iframe src="" frameborder="0"></iframe>
+                        <iframe src="" frameborder="0"></iframe>
+                    </div>
+                    <p>How to enhance progressively from left to right?</p>
+                </section>
+                <section>
                     <h2>Project, meet complexity wall...</h2>
                     <p>Simple things taking too long.</p>
                     <p class="fragment">Rewritten from scratch!</p>
@@ -85,7 +93,7 @@
                     <div class="book-introduction">
                         <img class="book-introduction__book" src="./img/state-machine.png" alt="book">
                         <div class="book-introduction__info">
-                            <p>the old school
+                            <p>The old school
                                 <i>state machine</i> works in the following way:</p>
                             <ol>
                                 <li>An input event comes into the system.</li>
@@ -94,7 +102,6 @@
                                 <li>The program logic changes the program state.</li>
                                 <li>The program logic may also produce output.</li>
                             </ol>
-                            <p>It tends to be extremely efficient</p>
                             <p>
                                 We could say that all programs are fundamentally state machines.
                             </p>
@@ -203,9 +210,39 @@
                     </aside>
                 </section>
                 <section>
-                    <h2>What is functional reactive programming?</h2>
+                    <h2>Core Pieces:</h2>
+                    <p class="fragment"><b>Cells</b>: Continuous values over time</p>
+                    <p class="fragment"><b>Streams</b>: Discrete events pushed into the graph.</p>
+                    <br />
+                    <p class="fragment"><i>Declarative</i> combinators that guarantee sensible composition.</p>
+                </section>
+                <section>
+                    <h2>Cell</h2>
+                    <pre><code class="typescript" data-trim>
+                        const num: new Cell&lt;number&gt;(1);
+                        const doubled = num.map(n => n * 2);
+
+                        // &lt;Cell&lt;A&gt;&gt;.lift( b: Cell&lt;B&gt;, (A, B) => C): Cell&lt;C&gt;
+                        const added = num.lift( doubled, (n, d) => n + d);
+                    </code></pre>
+                    <p>Always has a value</p>
+                </section>
+                <section>
+                    <h2>Streams</h2>
+                    <pre><code class="hljs typescript" data-trim>
+                        const nums: new StreamSink&lt;number&gt;();
+
+                        const doubled: Stream&lt;number&gt; = num.map(n => n * 2);
+                        const evens: Stream&lt;number&gt; = num.filter(n => n % 2 === 0);
+
+                        nums.send(2);
+                    </code></pre>
+                    <p>Fires at discrete points in time with a value.</p>
+                </section>
+                <section>
+                    <h3>I've heard 2 names of different programming paradigms!</h3>
                     <img src="img/lay-of-land.png" alt="">
-                    <p>FRP is a subset of both functional and reactive programming</p>
+                    <p>FRP is a subset of both functional and reactive programming.</p>
                 </section>
                 <section>
                     <h3>What is reactive programming</h3>
@@ -450,21 +487,11 @@
                             </small>
                         </li>
                         <li class="fragment">
-                            <small>Spread 1 cup meat sauce onto bottom of 13x9-inch baking dish; top with layers of 3 lasagna noodles,
-                                1/3 of the ricotta mixture and 1 cup meat sauce. Repeat layers twice. Top with remaining
-                                noodles and meat sauce. Sprinkle with remaining mozzarella and Parmesan. Cover with foil
-                                sprayed with cooking spray.
-                            </small>
-                        </li>
-                        <li class="fragment">
-                            <small>Bake 1 hour or until heated through, uncovering after 45 min. Let stand 15 min. before cutting
-                                to serve.
-                            </small>
+                            ...
                         </li>
                     </ol>
-                    <p class="fragment">Now, can you imagine what you would get?</p>
                     <aside class="notes">
-                        <p>这里不要说出lasagana的中文名：意大利千层面</p>
+                        <p>这里不要说出lasagana[ləˈsɑnjə]的中文名：意大利千层面</p>
                         <ul>
                             <li>炒锅烧热入少许橄榄油，爆香洋葱碎；然后放入白蘑菇翻炒。</li>
                             <li>翻炒均匀后，放入红椒丁继续翻炒。</li>
@@ -585,6 +612,22 @@
                 </section>
                 <section>
                     <h3>Thinking declaratively</h3>
+                    <div data-markdown>
+                        <script type="text/template">
+                            ```Haskell 
+                            Map f xs = [f x | x<-xs];
+                            ```
+                        </script>
+                    </div>
+                    <p>vs</p>
+                    <div data-markdown>
+                        <script type="text/template">
+                            ```Haskell 
+                            Map f [] = [];
+                            Map f [x:xs] = f x : map f xs;
+                            ```
+                        </script>
+                    </div>
                     <footer>
                         <small>
                             Common declarative languages include those of
@@ -601,6 +644,46 @@
                             </a> systems.
                         </small>
                     </footer>
+                </section>
+                <section>
+                    <h2>Wait...Why not just fix listeners?</h2>
+                    <p>If you fix the problems with listeners, you’ll invent FRP. </p>
+                    <aside class="notes">
+                        <p>实现一个FRP系统还是比较难的。Sodium团队在参考别人的实现的同时依旧花了6人月的工作量来理解和开发Sodium。而最初版本的库只有1000行代码!</p>
+                        <p>Sodium团队认为困难在于事件处理机制本身是困难的，在没有frp库的帮助下，我们每天都在和观察者模式带来的小麻烦作斗争，而写一个frp库则需要一次性对付所有问题。</p>
+                    </aside>
+                </section>
+            </section>
+            <section data-transition="convex">
+                <section>
+                    <h2>Introducing
+                        <b>Sodium</b>
+                    </h2>
+                    <div class="book-introduction">
+                        <div class="book-introduction__book">
+                            <a href="https://www.manning.com/books/functional-reactive-programming">
+                                <img src="./img/Blackheath-FRP-HI.jpg" alt="book">
+                            </a>
+                        </div>
+                        <div class="book-introduction__info">
+                            <blockquote class="book-quote">
+                                <p>A gentle introduction to the necessary concepts of FRP.</p>
+                                <footer>From the Foreword by Heinrich Apfelmus, author of the Reactive-banana FRP library
+                                </footer>
+                            </blockquote>
+                            <div data-markdown>
+                                <script type="text/template">
+                                    * [Book](https://www.manning.com/books/functional-reactive-programming) 
+                                    * [GitHub](https://github.com/SodiumFRP)
+                                    * [Forum](http://sodium.nz/)
+                                </script>
+                            </div>
+                        </div>
+                    </div>
+                    <aside class="notes">
+                        以下以sodium项目中的sodiumjs为例子来介绍frp。这个项目主要为非函数式编程语言提供了正确的frp实现。包括java、c#、c++、swift、rust、Typescript等实现。对于函数式编程语言，frp库的选择有很多，比如sodium之前就有haskell实现，之后由于reactive
+                        banana这个库的流行，因此sodium项目组不再维护haskell版的sodium。 之所以是用typescript实现，是因为函数式编程本身就是追求强类型的。
+                    </aside>
                 </section>
                 <section>
                     <h3>Life cycle of FRP</h3>
@@ -624,100 +707,9 @@
                     <aside class="notes">
                         <p>1.初始化：根据声明在内存中构造有向图。</p>
                         <p>2.运行：在其他程序执行的时候FRP引擎则根据用户输入产生输出</p>
-                    </aside>
-                </section>
-                <section>
-                    <h4>What's not FRP</h4>
-                    <blockquote class="quote">
                         <p>
-                            <small>
-                                I’m glad you’re starting by asking about a specification rather than implementation first. There are a lot of ideas floating
-                                around about what FRP is. For me it’s always been two things: (a) denotative and (b) temporally
-                                continuous. Many folks drop both of these properties and identify FRP with various implementation
-                                notions, all of which are beside the point in my perspective.
-                            </small>
+                            sodium的FRP逻辑是数据驱动的(push-based)。数据通过两个数据结构Stream和Cell流入逻辑图中。FRP代码对输入作出响应。数据从输入流向输出。
                         </p>
-                        <p>
-                            <small>
-                                By “denotative,” I mean founded on a precise, simple, implementation-independent, compositional semantics that exactly specifies
-                                the meaning of each type and building block. The compositional nature of the semantics then
-                                determines the meaning of all type-correct combinations of the building blocks
-                            </small>
-                        </p>
-                        <footer>
-                            <small>
-                                <a href="https://stackoverflow.com/questions/5875929/specification-for-a-functional-reactive-programming-language">Elliott’s reply to a Stack Overflow post, “Specification for a Functional Reactive Programming
-                                    language”
-                                </a>
-                            </small>
-                        </footer>
-                    </blockquote>
-                    <p>
-                        <small>A true FRP system has to be specified using
-                            <b>denotational semantics</b>. FRP controls what you do more tightly and gives you strong guarantees
-                            in return.
-                        </small>
-                    </p>
-                    <aside class="notes">
-                        <p>什么不是frp呢？必要条件：1.指称语义 2.响应式编程</p>
-                        指称语义是一门编程语言的数学表示，意味着(a)每个类型都有对应的精确简明的数学含义(b)每个原语和操作符都有对于一个对于其成分的功能的简明意义。
-                        <br> 指称语义是函数式编程之所以能行之有效的保证
-                        <br> 对于FRP系统，它提供了：系统的官方说明和所有情况下的所有组成元素的最重要的compositionality的证明
-                    </aside>
-                </section>
-                <section>
-                    <h2>Wait...Why not just fix listeners?</h2>
-                    <p>If you fix the problems with listeners, you’ll invent FRP. </p>
-                    <p>
-                        <small>In fact, many people in industry have done exactly this, usually for a specific problem domain, and
-                            usually without calling it FRP.
-                        </small>
-                    </p>
-                    <aside class="notes">
-                        <p>实现一个FRP系统还是比较难的。Sodium团队在参考别人的实现的同时依旧花了6人月的工作量来理解和开发Sodium。而最初版本的库只有1000行代码!</p>
-                        <p>Sodium团队认为困难在于事件处理机制本身是困难的，在没有frp库的帮助下，我们每天都在和观察者模式带来的小麻烦作斗争，而写一个frp库则需要一次性对付所有问题。</p>
-                    </aside>
-                </section>
-                <section>
-                    <h2>Now, let's meditate...</h2>
-                </section>
-                <section data-background-image="img/flow-of-codes.png">
-                    <h2 style="display: none;">Now, let's meditate....</h2>
-                    <aside class="notes">
-                        FRP逻辑是一个数据流。数据通过两个数据结构Stream和Cell流入逻辑图中。FRP代码对输入作出响应。数据从输入流向输出。——数据驱动(push-based)
-                    </aside>
-                </section>
-            </section>
-            <section data-transition="convex">
-                <section>
-                    <h2>Introducing
-                        <b>Sodium</b>
-                    </h2>
-                    <div class="book-introduction">
-                        <div class="book-introduction__book">
-                            <a href="https://www.manning.com/books/functional-reactive-programming">
-                                <img src="./img/Blackheath-FRP-HI.jpg" alt="book">
-                            </a>
-                        </div>
-                        <div class="book-introduction__info">
-                            <blockquote class="book-quote">
-                                <p>A gentle introduction to the necessary concepts of FRP.</p>
-                                <footer>From the Foreword by Heinrich Apfelmus, author of the Reactive-banana FRP library
-                                </footer>
-                            </blockquote>
-                            <div data-markdown>
-                                <script type="text/template">
-                                    *Functional Reactive Programming* teaches the concepts and applications of FRP. It offers a careful walk-through of core
-                                    FRP operations and introduces the concepts and techniques you'll need to use FRP in any
-                                    language. * [Book](https://www.manning.com/books/functional-reactive-programming) * [GitHub](https://github.com/SodiumFRP)
-                                    * [Forum](http://sodium.nz/)
-                                </script>
-                            </div>
-                        </div>
-                    </div>
-                    <aside class="notes">
-                        以下以sodium项目中的sodiumjs为例子来介绍frp。这个项目主要为非函数式编程语言提供了正确的frp实现。包括java、c#、c++、swift、rust、Typescript等实现。对于函数式编程语言，frp库的选择有很多，比如sodium之前就有haskell实现，之后由于reactive
-                        banana这个库的流行，因此sodium项目组不再维护haskell版的sodium。 之所以是用typescript实现，是因为函数式编程本身就是追求强类型的。
                     </aside>
                 </section>
                 <section>
@@ -852,7 +844,7 @@
                         恐怖电影里，恶魔往往不会被杀死，而是被封印。这样做的好处是，你总可以拍续集来骗钱。
                         frp也类似，通过将“邪恶”的事件处理分割放在stream和cell这样可以遵循函数式编程原则的数据结构里，来规避麻烦。
                         虽然Cell里的值是mutable，是可以有副作用的，但是Cell和Stream本身却是immutable的
-                        对了解函数式编程的同学，可以把Cell看做是一个monad，事实上，Stream也是一个monad。至于原因，待会儿降到它的lift操作符时，我会介绍。
+                        对了解函数式编程的同学，可以把Cell看做是一个 <a href="https://www.youtube.com/watch?v=b0EF0VTs9Dc">monad</a>，事实上，Stream也是一个monad。至于原因，待会儿降到它的lift操作符时，我会介绍。
                     </aside>
                 </section>
                 <section>
@@ -1708,6 +1700,10 @@
                     </aside>
                 </section>
                 <section>
+                    <h3>And only few codes after...</h3>
+                    <iframe></iframe>
+                </section>
+                <section>
                     <h3>Write your own primitives</h3>
                     <p>such as</p>
                     <div data-markdown>
@@ -1800,7 +1796,7 @@
                 </section>
                 <section>
                     <h4><a href="https://github.com/huanhulan/petrol_pump">petrol pump</a></h4>
-                    <iframe style="width: 50vw;height:50vh"></iframe>                    
+                    <iframe style="width: 50vw;height:50vh"></iframe>
                 </section>
                 <section>
                     <h4>petrol pump</h4>
@@ -1895,6 +1891,52 @@
                     <h2>why not rxjs?</h2>
                     <iframe style="width: 55vw;height:40vh"></iframe>                
                 </section>
+                <section>
+                    <h4>What's not FRP</h4>
+                    <blockquote class="quote">
+                        <p>
+                            <small>
+                                I’m glad you’re starting by asking about a specification rather than implementation first. There are a lot of ideas floating
+                                around about what FRP is. For me it’s always been two things: (a) denotative and (b) temporally
+                                continuous. Many folks drop both of these properties and identify FRP with various implementation
+                                notions, all of which are beside the point in my perspective.
+                            </small>
+                        </p>
+                        <p>
+                            <small>
+                                By “denotative,” I mean founded on a precise, simple, implementation-independent, compositional semantics that exactly specifies
+                                the meaning of each type and building block. The compositional nature of the semantics then
+                                determines the meaning of all type-correct combinations of the building blocks
+                            </small>
+                        </p>
+                        <footer>
+                            <small>
+                                <a href="https://stackoverflow.com/questions/5875929/specification-for-a-functional-reactive-programming-language">Elliott’s reply to a Stack Overflow post, “Specification for a Functional Reactive Programming
+                                    language”
+                                </a>
+                            </small>
+                        </footer>
+                    </blockquote>
+                    <p>
+                        <small>A true FRP system has to be specified using
+                            <b>denotational semantics</b>. FRP controls what you do more tightly and gives you strong guarantees
+                            in return.
+                        </small>
+                    </p>
+                    <aside class="notes">
+                        <p>什么不是frp呢？必要条件：1.指称语义 2.响应式编程</p>
+                        指称语义是一门编程语言的数学表示，意味着(a)每个类型都有对应的精确简明的数学含义(b)每个原语和操作符都有对于一个对于其成分的功能的简明意义。
+                        <br> 指称语义是函数式编程之所以能行之有效的保证
+                        <br> 对于FRP系统，它提供了：系统的官方说明和所有情况下的所有组成元素的最重要的compositionality的证明
+                    </aside>
+                </section>
+                <section>
+                    <h2>Other Choices for javascriper</h2>
+                    <ul>
+                        <li><a href="https://baconjs.github.io/">Bacon.js</a></li>
+                        <li><a href="https://github.com/reflex-frp/reflex">reflex</a></li>
+                    </ul>
+                </section>
             </section>
             <section>
                 <section>
@@ -1976,7 +2018,8 @@
                     <ul>
                         <li><a href="https://github.com/conal/talk-2015-essence-and-origins-of-frp">The essence and origins of FRP</a></li>     
                         <li><a href="http://www.guidosalvaneschi.com/REBLS/REBLS2015/attachments/REBLS15_paper_11.pdf">Declarative Deadlines in Functional-Reactive Programming</a></li>
-                        <li><a href="https://jameswtimms.wordpress.com/2015/04/08/a-functional-reactive-game-engine-sodium-explained/">a functional reactive game engine</a></li>                    
+                        <li><a href="https://jameswtimms.wordpress.com/2015/04/08/a-functional-reactive-game-engine-sodium-explained/">a functional reactive game engine</a></li>            
+                        <li><a href="https://stackoverflow.com/questions/1028250/what-is-functional-reactive-programming">What is (functional) reactive programming?</a></li>
                         <li><a href="https://stackoverflow.com/questions/28238793/what-is-elms-signals-conals-behaviorss-equivalent-in-rx-does-rx-have-suc">What is Elm's Signal's (Conal's Behaviors's) equivalent in RX ? Does RX have such a concept at all?</a></li>
                     </ul>
                 </section>
@@ -2027,61 +2070,72 @@
         
         let allIframes;
         const iframeConfs = {
-            "5/16":[{
-                src:"/demo/filter/index.html",
+            "2/":[{
+                src:"./demo/continuous_time/index.html",
+                frameborder:"0",
+                style:"background:#fff;",
+                sandbox:"allow-scripts allow-pointer-lock allow-same-origin"
+            },{
+                src:"./demo/mini_golf/index.html",
+                frameborder:"0",
+                style:"background:#fff;",
+                sandbox:"allow-scripts allow-pointer-lock allow-same-origin"
+            }],
+            "5/17":[{
+                src:"./demo/filter/index.html",
                 frameborder:"0",
                 style:"background:wheat",
                 sandbox:"allow-scripts allow-pointer-lock allow-same-origin"
             }],
-            "5/18":[{
-                src:"/demo/filter/index.html",
+            "5/19":[{
+                src:"./demo/filter/index.html",
                 frameborder:"0",
                 class:"book-introduction__book",
                 style:`background:wheat`,
                 sandbox:"allow-scripts allow-pointer-lock allow-same-origin"
             }],
-            "5/23":[{
-                src:"/demo/lift/index.html",
+            "5/24":[{
+                src:"./demo/lift/index.html",
                 frameborder:"0",
                 class:"book-introduction__book",
                 sandbox:"allow-scripts allow-pointer-lock allow-same-origin",
                 style:`background:wheat`
             }],
-            "5/27":[{
-                src:"/demo/switch/index.html",
+            "5/28":[{
+                src:"./demo/switch/index.html",
                 frameborder:"0",
                 sandbox:"allow-scripts allow-pointer-lock allow-same-origin",
                 style:`background:wheat;width: 60vw;height:60vh`
             }],
-            "5/30":[{
-                src:"/demo/zombicus",
+            "5/31":[{
+                src:"./demo/zombicus",
                 frameborder:"0",
                 sandbox:"allow-scripts allow-pointer-lock allow-same-origin",
                 style:`background:#fff;width: 60vw;height:60vh`
             }],
-            "5/39":[{
-                src:"/demo/updates/index.html",
+            "5/40":[{
+                src:"./demo/updates/index.html",
                 frameborder:"0",
                 class:`book-introduction__book`,                
                 sandbox:"allow-scripts allow-pointer-lock allow-same-origin",
                 style:`background:wheat;`
             }],
-            "5/40":[{
-                src:"/demo/value/index.html",
+            "5/41":[{
+                src:"./demo/value/index.html",
                 frameborder:"0",
                 sandbox:"allow-scripts allow-pointer-lock allow-same-origin",                
                 class:`book-introduction__book`,
                 style:"background:wheat"
             }],
-            "5/42":[{
-                src:"/demo/split-1/index.html",
+            "5/43":[{
+                src:"./demo/split-1/index.html",
                 frameborder:"0",
                 style:"background:wheat",
                 sandbox:"allow-scripts allow-pointer-lock allow-same-origin",
                 class:`book-introduction__book`
             }],
-            "5/43":[{
-                src:"/demo/split-2/index.html",
+            "5/44":[{
+                src:"./demo/split-2/index.html",
                 frameborder:"0",
                 style:"background:wheat",
                 class:`book-introduction__book`,
@@ -2099,7 +2153,13 @@
                 style:`background:#fff`,
                 sandbox:"allow-scripts allow-pointer-lock allow-same-origin"
             }],
-            "7/8":[{
+            "7/2":[{
+                src:"./demo/mini_golf/index.html",
+                frameborder:"0",
+                style:`width: 55vw;height:55vh;background:#fff`,
+                sandbox:"allow-scripts allow-pointer-lock allow-same-origin"
+            }],
+            "7/9":[{
                 src:"./demo/petrol_pump",
                 frameborder:"0",
                 sandbox:"allow-scripts allow-pointer-lock allow-same-origin",
