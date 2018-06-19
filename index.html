@@ -32,7 +32,7 @@
                 <h4>a new way to deals with complexity</h4>
                 <p>
                     <small>
-                        <a href="https://github.com/huanhulan">Lex Huang</a>, Mar 2018</small>
+                        <a href="https://github.com/huanhulan">Lex Huang</a>, June 2018</small>
                 </p>
                 <aside class="notes">
                     今天主要和大家分享下函数式响应式编程。以sodium为例子。
@@ -1886,6 +1886,7 @@
                 <section>
                     <h2>Now we are done</h2>
                     <h3>one last thing...</h3>
+                    <h4 class="fragment">Actually, 3 things...</h4>
                 </section>
                 <section>
                     <h2>why not rxjs?</h2>
@@ -1929,6 +1930,14 @@
                         <br> 指称语义是函数式编程之所以能行之有效的保证
                         <br> 对于FRP系统，它提供了：系统的官方说明和所有情况下的所有组成元素的最重要的compositionality的证明
                     </aside>
+                </section>
+                <section>
+                    <h3>Any bad parts? Yes</h3>
+                    <ul>
+                        <li><p>The old FRP space leaks, because it try to remember every thing in the past. </p></li>
+                        <li><p>It can still be possible in Sodium when you change the scence graph not carefully enough.</p></li>
+                    </ul>
+                    <p>But if you forget the past, you can still make your computer happy: <a href="https://github.com/beerendlauwers/haskell-papers-ereader/blob/master/papers/Practical%20Principled%20FRP%20-%20Forget%20the%20past,%20change%20the%20future,%20FRPNow!.pdf">Practical Principled FRP</a>.</p>
                 </section>
                 <section>
                     <h2>Other frp libs for javascriper(ish)</h2>
