@@ -1576,6 +1576,14 @@
                     <aside class="notes">我们还能递归split</aside>
                 </section>
                 <section>
+                    <h3>If a tree falls...</h3>
+                    <p><a href="https://en.wikipedia.org/wiki/If_a_tree_falls_in_a_forest"><i>"If a tree falls in a forest and no one is around to hear it, does it make a sound?"</i></a></p>
+                    <p>Not in the FRP world!</p>
+                    <aside class="notes">
+                        因为我们强调referential transparency,FRP可以检查所有其产生的作用。也就是说，对于一部分FRP逻辑来说，只有当它们被别的地方（一般是listner）引用了，才会存在于内存里。因此，我们可以说在FRP里，只有可观测到的区别才会对应用产生影响。
+                    </aside>
+                </section>
+                <section>
                     <h3>Now you are ready to go.</h3>
                     <h4>are you?</h4>
                     <aside class="notes">
@@ -2006,9 +2014,6 @@
                     </aside>
                 </section>
             </section>
-            <section data-background-image="img/thankyou.jpg">
-                <aside class="notes">提问环节</aside>
-            </section>
             <section>
                 <section>
                     <p style="text-align: left">About sodium:</p>
@@ -2046,6 +2051,10 @@
                         <li><a href="https://stackoverflow.com/questions/28238793/what-is-elms-signals-conals-behaviorss-equivalent-in-rx-does-rx-have-suc">What is Elm's Signal's (Conal's Behaviors's) equivalent in RX ? Does RX have such a concept at all?</a></li>
                     </ul>
                 </section>
+            </section>
+            <section  data-background-color="#f9a" data-background-size="contain" >
+                <iframe src="" frameborder="0"></iframe>
+                <aside class="notes">提问环节</aside>
             </section>
         </div>
     </div>
@@ -2193,7 +2202,13 @@
                 frameborder:"0",
                 sandbox:"allow-scripts allow-pointer-lock allow-same-origin",
                 style:`width: 55vw;height:40vh`
-            }],                
+            }],
+            "11/":[{   
+                src:"./demo/thankyou/index.html",
+                frameborder:"0",
+                sandbox:"allow-scripts allow-pointer-lock allow-same-origin",
+                style:`width: 60vw;height:60vh`
+            }]               
         };
 
         Reveal.addEventListener( 'slidechanged', function(e) {
