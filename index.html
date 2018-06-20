@@ -36,6 +36,7 @@
                 </p>
                 <aside class="notes">
                     今天主要和大家分享下函数式响应式编程。以sodium为例子。
+                    有带电脑的同学可以打开http://10.32.60.158:8000/ 来在自己笔记本上观看ppt
                 </aside>
             </section>
             <section data-background="#000" data-transition="fade-in fade-out">
@@ -64,6 +65,9 @@
                         <iframe src="" frameborder="0"></iframe>
                     </div>
                     <p>How to enhance progressively from left to right?</p>
+                    <aside class="notes">
+                        先给个问题，如何平滑地，简单的将左边的应用，过渡成右边的小游戏
+                    </aside>
                 </section>
                 <section>
                     <h2>Project, meet complexity wall...</h2>
@@ -136,7 +140,7 @@
                         <ul>
                             <li>
                                 <b>不可预测顺序</b>—在一个复杂的侦听器构成的网络中，事件的接收顺序依赖于监听器的注册顺序。这种隐性依赖是有害的。 FRP 使事件的处理顺序无关紧要, 因为从外部是无法察觉到离散的事件的。
-                                <p>比如,B&C同时监听A，而C还监听了B，则对于C我们很难判断哪个事件先到达</p>
+                                <p>比如,B&C同时监听A，而C还监听了B，则对于C，我们很难判断是B的事件先还是A的事件先到达</p>
                             </li>
                             <li>
                                 <b>错过第一个事件</b>—这可能很难保证你在发送第一个事件的时候已经注册你的监听器。FRP 是事务性的, 所以有可能提供此项保证。
@@ -154,6 +158,7 @@
                                 <b>不小心地递归</b>—更新本地状态和通知侦听器的顺序可能是致命的, 容易犯错误，比如在一个监听器里发送事件可能导致程序进入递归。FRP消除了这个问题。
                             </li>
                         </ul>
+                        以上问题就容易造成当状态机和观察者模式结合的时候，容易出现状态混乱。
                     </aside>
                 </section>
                 <section data-background-image="">
@@ -175,6 +180,7 @@
                         </div>
                     </div>
                     <aside class="notes">
+                        状态混乱的时候怎么办呢？<br>
                         保持冷静 <br>
                         重启程序 <br>
                         CTRL+ALT+DELET <br>
@@ -212,14 +218,14 @@
                 <section>
                     <h2>Core Pieces:</h2>
                     <p class="fragment"><b>Cells</b>: Continuous values over time</p>
-                    <p class="fragment"><b>Streams</b>: Discrete events pushed into the graph.</p>
+                    <p class="fragment"><b>Streams</b>: Discrete events pushed into the FRP sys.</p>
                     <br />
                     <p class="fragment"><i>Declarative</i> combinators that guarantee sensible composition.</p>
                 </section>
                 <section>
                     <h2>Cell</h2>
                     <pre><code class="typescript" data-trim>
-                        const num: new Cell&lt;number&gt;(1);
+                        const num = new Cell&lt;number&gt;(1);
                         const doubled = num.map(n => n * 2);
 
                         // &lt;Cell&lt;A&gt;&gt;.lift( b: Cell&lt;B&gt;, (A, B) => C): Cell&lt;C&gt;
@@ -230,7 +236,7 @@
                 <section>
                     <h2>Streams</h2>
                     <pre><code class="hljs typescript" data-trim>
-                        const nums: new StreamSink&lt;number&gt;();
+                        const nums = new StreamSink&lt;number&gt;();
 
                         const doubled: Stream&lt;number&gt; = num.map(n => n * 2);
                         const evens: Stream&lt;number&gt; = num.filter(n => n % 2 === 0);
@@ -238,6 +244,9 @@
                         nums.send(2);
                     </code></pre>
                     <p>Fires at discrete points in time with a value.</p>
+                    <aside class="notes">
+                        之后我会具体介绍这两个类型及其运算符。
+                    </aside>
                 </section>
                 <section>
                     <h3>I've heard 2 names of different programming paradigms!</h3>
@@ -420,8 +429,6 @@
                         <div class="book-introduction__info">
                             <p>
                                 Traditionally, software is expressed as a sequence of steps.
-                                <br> Each step has a relationship with the steps that came before.
-                                <br> Some steps will depend on the previous step, and some may depend on things from much earlier.
                             </p>
                             <p>
                                 The problem with representing dependencies as a sequence comes when you go to change the code.
@@ -443,15 +450,14 @@
                     </h3>
                     <div class="book-introduction">
                         <div class="book-introduction__book">
-                            <img src="img/minimal.png" alt="conceptual diagram">
+                            <a href="#/6/5"><img src="img/minimal.png" alt="conceptual diagram"></a>
                             <footer>
                                 <small>Given a conceptual diagram like the above, we can extract the dependency relationships easily
                                 </small>
                             </footer>
                         </div>
                         <div class="book-introduction__info">
-                            <p>In FRP, you express dependencies directly, the FRP engine knows all these relationships, from
-                                that, the correct sequence is guaranteed.</p>
+                            <p>In FRP, you express dependencies directly, but express it using a <b>directed graph</b>.</p>
                             <p>So you can just add or remove the dependencies, and the sequence is automatically updated. It’s
                                 impossible to make a sequence mistake.</p>
                         </div>
@@ -2207,7 +2213,7 @@
                 src:"./demo/thankyou/index.html",
                 frameborder:"0",
                 sandbox:"allow-scripts allow-pointer-lock allow-same-origin",
-                style:`width: 60vw;height:60vh`
+                style:`width: 100%;height:55vh;max-height:768px;`
             }]               
         };
 
